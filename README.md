@@ -24,7 +24,7 @@ This application serves as the backend for the **DarkSpyder** project, which hel
 
 Start the application by running:
 
-    ```bash
+    ```
     python main.py
     ```
 
