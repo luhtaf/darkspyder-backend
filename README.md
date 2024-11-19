@@ -15,4 +15,5 @@ This application serves as the backend for the **DarkSpyder** project, which hel
 1. Install the required dependencies:
 
    ```bash
-   pip install -r requirements.txt```
+   pip install -r requirements.txt
+   ```
