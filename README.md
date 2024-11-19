@@ -17,3 +17,17 @@ This application serves as the backend for the **DarkSpyder** project, which hel
    ```bash
    pip install -r requirements.txt
    ```
+
+1. Configure the environment variables by filling out the .env file or setting OS-level environment variables as per the example provided in `.env.example.`
+
+## Running the Application
+
+Start the application by running:
+
+    ```bash
+    python main.py
+    ```
+
+## Enjoy
+
+Have fun exploring your data with DarkSpyder!
