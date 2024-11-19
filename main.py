@@ -59,7 +59,7 @@ def jwt_required(f):
             return jsonify({"error": "Missing token"}), 401
         try:
             # Validate JWT
-            jwt.decode(token.split("Bearer ")[1], SECRET_KEY, algorithms=["HS256"])
+            jwt.decode(token.split("Bearer ")[1], JWT_SECRET_KEY, algorithms=["HS256"])
         except jwt.ExpiredSignatureError:
             return jsonify({"error": "Token expired"}), 401
         except jwt.InvalidTokenError:
@@ -70,15 +70,17 @@ def jwt_required(f):
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
+    username_app=os.getenv('USERNAME_APP')
+    password_app=os.getenv('PASSWORD_APP')
     username = data.get('username')
     password = data.get('password')
 
     # Validate credentials
-    if username == 'admin' and password == 'ru890KLios322':
+    if username == username_app and password == password_app:
         token = jwt.encode({
             "user": username,
             "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-        }, SECRET_KEY, algorithm="HS256")
+        }, JWT_SECRET_KEY, algorithm="HS256")
         return jsonify({"token": token})
     else:
         return jsonify({"error": "Invalid credentials"}), 401
