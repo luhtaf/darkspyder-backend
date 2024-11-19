@@ -1,0 +1,6 @@
+Flask
+Flask-JWT-Extended
+elasticsearch
+PyJWT
+python-dotenv
+cryptography
