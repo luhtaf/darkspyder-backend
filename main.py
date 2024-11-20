@@ -276,11 +276,13 @@ def json_to_el_stealer(filename):
                 print(f"Document indexed with new Checksum {newData['Checksum']}: {response['_id']}")
 
         # If no exception was raised, delete the file after processing
-        os.remove(filename)
         print(f"File {filename} processed and deleted successfully.")
 
     except Exception as e:
         print(f"Error processing file: {e}")
+    finally:
+        os.remove(filename)
+
 
 if __name__ == '__main__':
     app.run(debug=False, host="0.0.0.0")
