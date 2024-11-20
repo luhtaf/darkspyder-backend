@@ -99,21 +99,10 @@ def search():
         from_value = (page - 1) * size
         
         # Elasticsearch query with `q` parameter
-        # query_body = {
-        #     "query": {
-        #         "query_string": {
-        #             "query": q
-        #         }
-        #     }
-        # }
         query_body = {
             "query": {
                 "query_string": {
-                    "query": q,  # Replace with your search keyword
-                    "fields": ["*"],         # Search across all fields
-                    "fuzziness": "AUTO",     # Enable fuzzy matching
-                    "default_operator": "or",  # Matches any term in the keyword
-                    "analyze_wildcard": True
+                    "query": q
                 }
             }
         }
