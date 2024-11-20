@@ -4,3 +4,4 @@ elasticsearch
 PyJWT
 python-dotenv
 cryptography
+telethon
