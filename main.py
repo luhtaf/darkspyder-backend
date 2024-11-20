@@ -282,10 +282,5 @@ def json_to_el_stealer(filename):
     except Exception as e:
         print(f"Error processing file: {e}")
 
-
-if __name__ == "__main__":
-    q = 'astra'  # Example query, replace with the actual query
-    asyncio.run(update_stealer(q))
-
 if __name__ == '__main__':
     app.run(debug=False, host="0.0.0.0")
