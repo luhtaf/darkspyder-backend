@@ -46,9 +46,12 @@ def update_darkspyder(request):
     print("run breach")
     token = 'gAAAAABnPJw5B5RlAH3ym7MmO7pJpTmkOOoUtwPuwD3Wd8PN1N7x-oNeFuHfUrD2MP8VfCAKGh7bjrRJw26k5uAKPZIMMzVkPo1GPo4Tjy8pWWzqw3xjC7Y='
     new_token = fernet.decrypt(token.encode()).decode()
+    print("try to search breach")
     response = requests.post(new_token, json=data)
     datajson= response.json()
+    print("data breach got")
     for i in datajson['List']:
+        print(f"breach -{datajson['List'][i]}")
         newData={
             "Data":datajson['List'][i]['Data'],
             "Source":i,
@@ -58,6 +61,7 @@ def update_darkspyder(request):
         checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
         newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
         # Check if the document with this checksum already exists
+        print("save breach to db")
         search_response = es.search(
             index=index_name,
             body={
@@ -66,16 +70,19 @@ def update_darkspyder(request):
                 }
             }
         )
-
+        print("done save breach to db")
+        
         # If a document exists with the same checksum, update it
         if search_response['hits']['total']['value'] > 0:
-            doc_id = search_response['hits']['hits'][0]['_id']
-            update_response = es.update(
-                index=index_name,
-                id=doc_id,
-                body={"doc": newData}
-            )
-            print(f"Document with Checksum {newData['Checksum']} updated: {update_response['_id']}")
+            pass
+            # doc_id = search_response['hits']['hits'][0]['_id']
+            # update_response = es.update(
+            #     index=index_name,
+            #     id=doc_id,
+            #     body={"doc": newData}
+            # )
+            # print(f"Document with Checksum {newData['Checksum']} updated: {update_response['_id']}")
+            print("data ditemukan sama")
         
         # If no document exists with the same checksum, create a new one
         else:
