@@ -191,8 +191,9 @@ def api_update_darkspyder():
     try:
         # Get query parameters
         q = request.args.get('q', '')  # Full-text search parameter
-        update_darkspyder(q)
         asyncio.run(update_stealer(q))
+        update_darkspyder(q)
+    
         # Return response
         return jsonify({
             "message":"success update data darkspyder",
