@@ -123,26 +123,43 @@ def search():
     try:
         # Get query parameters
         q = request.args.get('q', '')  # Full-text search parameter
+        type_param = request.args.get('type', '')  # Parameter type tambahan
         page = int(request.args.get('page', 1))
         size = min(int(request.args.get('size', 10)), 100)  # Max size is 100
         update = request.args.get('update', 'false').lower() == 'true'
-        
-        # Calculate from (pagination start point)
+
+        # Hitung from (awal pagination)
         from_value = (page - 1) * size
-        
-        # Elasticsearch query with `q` parameter
+
+        # Elasticsearch query dasar
         query_body = {
             "query": {
-                "query_string": {
-                    "query": q
+                "bool": {
+                    "must": []
                 }
             }
         }
-        
-        # Get total data count
+
+        # Tambahkan query full-text search jika ada
+        if q:
+            query_body['query']['bool']['must'].append({
+                "query_string": {
+                    "query": q
+                }
+            })
+
+        # Tambahkan filter berdasarkan type jika disediakan
+        if type_param in ['stealer', 'breach']:
+            query_body['query']['bool']['must'].append({
+                "term": {
+                    "type.keyword": type_param
+                }
+            })
+
+        # Mendapatkan total jumlah data
         total_count = es.count(index=index_name, body=query_body)['count']
-        
-        # Execute search query
+
+        # Eksekusi query pencarian
         result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
         if update:
             thread=Thread(target=update_darkspyder, args=(q,)).start()
