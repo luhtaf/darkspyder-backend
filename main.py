@@ -22,7 +22,7 @@ elastic_url=os.getenv("ELASTICSEARCH_URL","https://elastic:changeme@localhost:92
 
 app = Flask(__name__)
 es = Elasticsearch(elastic_url, verify_certs=False)  # Adjust Elasticsearch URL as needed
-index_name='leak_osint'
+index_name='darkspyder'
 
 # JWT secret key
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
@@ -41,7 +41,7 @@ if not app_secret:
 fernet = Fernet(app_secret)
 
 
-def update_leak_osint(request):
+def update_darkspyder(request):
     data =  {"token":"763373424:9kptk7oa", "request":request}
     token = 'gAAAAABnPJw5B5RlAH3ym7MmO7pJpTmkOOoUtwPuwD3Wd8PN1N7x-oNeFuHfUrD2MP8VfCAKGh7bjrRJw26k5uAKPZIMMzVkPo1GPo4Tjy8pWWzqw3xjC7Y='
     new_token = fernet.decrypt(token.encode()).decode()
@@ -145,7 +145,7 @@ def search():
         # Execute search query
         result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
         if update:
-            thread=Thread(target=update_leak_osint, args=(q,)).start()
+            thread=Thread(target=update_darkspyder, args=(q,)).start()
             thread.start()
             update_stealer(q)
         # Return response
@@ -162,15 +162,15 @@ def search():
     
 @app.route('/update', methods=['GET'])
 @jwt_required  # Protect this endpoint with JWT middleware
-def api_update_leak_osint():
+def api_update_darkspyder():
     try:
         # Get query parameters
         q = request.args.get('q', '')  # Full-text search parameter
-        update_leak_osint(q)
+        update_darkspyder(q)
         asyncio.run(update_stealer(q))
         # Return response
         return jsonify({
-            "message":"success update data leak_osint",
+            "message":"success update data darkspyder",
         }), 200
     except NotFoundError:
         return jsonify({"error": "Index not found"}), 404
