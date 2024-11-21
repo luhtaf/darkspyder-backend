@@ -43,6 +43,7 @@ fernet = Fernet(app_secret)
 
 def update_darkspyder(request):
     data =  {"token":"763373424:9kptk7oa", "request":request}
+    print("run breach")
     token = 'gAAAAABnPJw5B5RlAH3ym7MmO7pJpTmkOOoUtwPuwD3Wd8PN1N7x-oNeFuHfUrD2MP8VfCAKGh7bjrRJw26k5uAKPZIMMzVkPo1GPo4Tjy8pWWzqw3xjC7Y='
     new_token = fernet.decrypt(token.encode()).decode()
     response = requests.post(new_token, json=data)
@@ -199,8 +200,9 @@ def api_update_darkspyder():
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 async def update_stealer(q):
+    print("pre run stealer")
     async with TelegramClient('name', API_ID, API_HASH) as client:
-
+        print("running stealer")
         token_stealer = fernet.decrypt(old_token_stealer.encode()).decode()
         # Step 1: Send the search query
         await client.send_message(token_stealer, f"/search {q}")
