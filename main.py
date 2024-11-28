@@ -130,14 +130,19 @@ def login():
 def search():
     try:
         # Get query parameters
-        q = request.args.get('q', '')  # Full-text search parameter
-        type_param = request.args.get('type', '')  # Parameter type tambahan
+        q = request.args.get('q', '').strip()  # Query parameter pencarian
+        type_param = request.args.get('type', '').strip().lower()  # Type pencarian (password, email, dll.)
         page = int(request.args.get('page', 1))
-        size = min(int(request.args.get('size', 10)), 100)  # Max size is 100
+        size = min(int(request.args.get('size', 10)), 100)  # Max size adalah 100
         update = request.args.get('update', 'false').lower() == 'true'
 
         # Hitung from (awal pagination)
         from_value = (page - 1) * size
+
+        # Validasi type yang diperbolehkan
+        valid_types = ['stealer', 'breach', 'password', 'email', 'username']
+        if type_param not in valid_types:
+            return jsonify({"error": f"Invalid type. Allowed types: {', '.join(valid_types)}"}), 400
 
         # Elasticsearch query dasar
         query_body = {
@@ -148,31 +153,52 @@ def search():
             }
         }
 
-        # Tambahkan query full-text search jika ada
-        if q:
+        # Tambahkan logika spesifik berdasarkan `type`
+        if type_param in ['password', 'email', 'username']:
+            if not q:
+                return jsonify({"error": "Parameter 'q' is required for this type"}), 400
+
+            # Field pencarian sesuai type
+            field_queries = [
+                {"term": {f"{type_param}.keyword": q}},  # Field utama
+                {"term": {f"Data.{type_param.capitalize()}.keyword": q}}  # Field dalam objek Data dengan kapitalisasi
+            ]
             query_body['query']['bool']['must'].append({
-                "query_string": {
-                    "query": q
+                "bool": {
+                    "should": field_queries,
+                    "minimum_should_match": 1
                 }
             })
 
-        # Tambahkan filter berdasarkan type jika disediakan
-        if type_param in ['stealer', 'breach']:
+        elif type_param in ['stealer', 'breach']:
+            # Filter berdasarkan type keyword
             query_body['query']['bool']['must'].append({
                 "term": {
                     "type.keyword": type_param
                 }
             })
 
+            # Pencarian di semua field dengan q
+            if q:
+                query_body['query']['bool']['must'].append({
+                    "query_string": {
+                        "query": q,
+                        "default_operator": "AND"
+                    }
+                })
+
         # Mendapatkan total jumlah data
         total_count = es.count(index=index_name, body=query_body)['count']
 
         # Eksekusi query pencarian
         result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
+
+        # Jika parameter update = true, jalankan update dalam thread
         if update:
-            thread=Thread(target=update_darkspyder, args=(q,)).start()
+            thread = Thread(target=update_darkspyder, args=(q,))
             thread.start()
             update_stealer(q)
+
         # Return response
         return jsonify({
             "page": page,
@@ -184,7 +210,7 @@ def search():
         return jsonify({"error": "Index not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
 @app.route('/update', methods=['GET'])
 @jwt_required  # Protect this endpoint with JWT middleware
 def api_update_darkspyder():
