@@ -147,7 +147,7 @@ class Login(Resource):
         if username == username_app and password == password_app:
             token = jwt.encode({
                 "user": username,
-                "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+                "exp": datetime.datetime.now() + datetime.timedelta(hours=1)
             }, JWT_SECRET_KEY, algorithm="HS256")
             return {"token": token}, 200
         else:
