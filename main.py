@@ -234,12 +234,12 @@ class Search(Resource):
 
             # Eksekusi query pencarian
             result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
-
+            print(result)
             # Jika parameter update = true, jalankan update dalam thread
-            if update:
-                thread = Thread(target=update_darkspyder, args=(q,))
-                thread.start()
-                update_stealer(q)
+            # if update:
+            #     thread = Thread(target=update_darkspyder, args=(q,))
+            #     thread.start()
+            #     update_stealer(q)
 
             # Return response
             return jsonify({
