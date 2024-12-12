@@ -22,13 +22,37 @@ def start_search():
     return jsonify(response), 200
 
 
+@app.route("/search/update/all", methods=["GET"])
+def start_task_update_with_search_all():
+    # Extract arguments from the query parameters
+    q = request.args.get("q", "")
+    type_param = request.args.get('type', '').strip().lower() 
+    if type_param == 'breach':
+        response = search_breach1(q)
+        subprocess.Popen(["python3", "breach1.py", q])
+        subprocess.Popen(["python3", "breach2.py", q, 'username'])
+        subprocess.Popen(["python3", "breach2.py", q, 'auto'])
+    elif type_param == 'stealer':
+        response = search_lcheck_stealer(q, "domain")
+        subprocess.Popen(["python3", "stealer1_update_only.py", q])
+        subprocess.Popen(["python3", "breach2.py", q, 'domain'])
+        subprocess.Popen(["python3", "stealer1_update_only.py", q])
+    else:
+        response = ResponseError("Please Specify Response",400)
+        {
+            "err":True,
+            "msg":"Please Specify Response",
+            "status":400
+            }
+    return jsonify(response), response['status']
+
 @app.route("/search/update", methods=["GET"])
 def start_task_update_with_search():
     # Extract arguments from the query parameters
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower() 
     if type_param == 'breach':
-        subprocess.Popen(["python3", "breach1.py",q])
+        subprocess.Popen(["python3", "breach1.py", q])
         response = search_breach1(q)
     elif type_param == 'stealer':
         subprocess.Popen(["python3", "breach2.py", q, 'domain'])
@@ -49,6 +73,8 @@ def start_task_update():
     type_param = request.args.get('type', '').strip().lower() 
     if type_param == 'breach':
         subprocess.Popen(["python3", "breach1.py",q])
+        subprocess.Popen(["python3", "breach2.py", q, 'username'])
+        subprocess.Popen(["python3", "breach2.py", q, 'auto'])
     elif type_param == 'stealer':
         subprocess.Popen(["python3", "breach2.py", q, 'domain'])
         subprocess.Popen(["python3", "stealer1_update_only.py", q])
