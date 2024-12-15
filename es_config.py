@@ -1,6 +1,7 @@
 from elasticsearch import Elasticsearch
 from dotenv import load_dotenv
 import os, json, hashlib
+from trait import ResponseError
 load_dotenv()
 
 elastic_url=os.getenv("ELASTICSEARCH_URL","https://elastic:changeme@localhost:9200")
@@ -21,7 +22,7 @@ def update_data_into_es(newData):
         response = es.index(index=index_name, body=newData)
         print(f"Document indexed with new Checksum {newData['Checksum']}: {response['_id']}")
 
-def search_elastic(q, type_param, page, size):
+def search_elastic(q, type_param, page, size, data):
     from_value = (page - 1) * size
     query_body = {
             "query": {
@@ -40,10 +41,29 @@ def search_elastic(q, type_param, page, size):
         if q:
             query_body['query']['bool']['must'].append({
                 "query_string": {
-                    "query": q,
+                    "query": f"*{q}*",
                     "default_operator": "AND"
                 }
             })
+        else:
+            if data['username']:
+                query_body['query']["bool"]["must"].append({
+                    "query_string": {
+                        "query": f"*{data['username']}*",
+                        "default_operator": "AND",
+                        "fields" : ["username"]
+                    }
+                })
+
+            if data['domain']:
+                query_body['query']["bool"]["must"].append({
+                    "query_string": {
+                        "query": f"*{data['domain']}*",
+                        "default_operator": "AND",
+                        "fields" : ["domain"]
+                    }
+                })
+
         total_count = es.count(index=index_name, body=query_body)['count']
 
         result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
@@ -57,9 +77,7 @@ def search_elastic(q, type_param, page, size):
             }
         return response
     else:
-        response = {
-
-        }
+        return ResponseError("Please Specify Type", 400)
     
 
 def json_to_el_stealer(filename):

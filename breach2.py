@@ -3,11 +3,11 @@ import sys, json, hashlib
 from es_config import update_data_into_es
 from trait import ResponseSuccess
 
-def find_data(q, type):
+def find_data(q, type, limit=1000):
     api = LeakCheckAPI_v2(api_key='018b10e5db3fc3297993fc0ff2b52c3d15d5407f')
 
     # Perform a lookup
-    result = api.lookup(query=q, query_type=type, limit=1000)
+    result = api.lookup(query=q, query_type=type, limit=limit)
     return result
 
 def formatting_data_stealer(i):
@@ -33,8 +33,8 @@ def main():
         print("Please Input Argumen")
 
 
-def search_lcheck_stealer(q, type):
-    datajson = find_data(q, type)
+def search_lcheck_stealer(q, type, limit):
+    datajson = find_data(q, type, limit)
     final_data=[]
     for i in datajson:
         newData = {"_source":formatting_data_stealer(i)}
