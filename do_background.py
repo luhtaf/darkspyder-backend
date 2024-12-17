@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-import subprocess, jwt, datetime
+import subprocess, jwt, datetime, json
 from breach1 import search_breach1
 from breach2 import search_lcheck_stealer
 from functools import wraps
@@ -131,26 +131,9 @@ def login_route():
 
 @app.route('/db-info', methods=['GET'])
 def database():
-    data = {
-        "email": "24.335.322.638",
-        "full_name": "11.236.237.607",
-        "password": "11.161.673.768",
-        "telephone": "9.324.230.153",
-        "nick": "4.826.634.160",
-        "document_number": "3.009.829.885",
-        "vk_id": "1.819.611.354",
-        "facebookid": "829.607.856",
-        "ip": "684.733.772",
-        "ssn": "651.615.996",
-        "vehicle_number": "405.358.873",
-        "link": "319.497.568",
-        "company_name": "299.564.297",
-        "telegramid": "154.974.753",
-        "domain": "84.443.741",
-        "instagram_id": "45.090.607"
-    }
-
-    return jsonify(data)
+    with open("info.json", 'r') as file:
+        data = json.load(file)
+        return jsonify(data)
 
 
 if __name__ == "__main__":
