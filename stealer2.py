@@ -38,6 +38,7 @@ def get_remaining_page(hasil, q):
                 newData = formatting_data(i)
                 checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
                 newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
+                newData["threatintel"] = 'stealer2'
                 update_data_into_es(newData)
             except:
                 print(f"error processing data:")

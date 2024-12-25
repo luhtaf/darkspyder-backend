@@ -28,6 +28,7 @@ def main():
             newData = formatting_data_stealer(i)
             checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
             newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
+            newData["threatintel"] = 'breach2'
             update_data_into_es(newData)
     else:
         print("Please Input Argumen")

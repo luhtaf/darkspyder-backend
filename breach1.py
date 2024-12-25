@@ -32,6 +32,7 @@ def main():
                 newData = formatting_data(i, datajson)
                 checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
                 newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
+                newData["threatintel"] = 'breach1'
                 update_data_into_es(newData)
             except:
                 print(f"error processing data:")

@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request
-import subprocess, jwt, datetime, json
+import subprocess, jwt, datetime, json, os
 from breach1 import search_breach1
 from breach2 import search_lcheck_stealer
 from functools import wraps
@@ -7,8 +7,12 @@ from cred import username_app, password_app, JWT_SECRET_KEY
 from es_config import search_elastic
 from stealer2 import search_stealer2
 from trait import ResponseError
+from parsing_db_to_json import parse_html_to_json, save_to_json
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = './'
+
 
 max_query=1000
 
@@ -38,9 +42,11 @@ def start_search():
     size = min(int(request.args.get('size', 10)), max_query) 
     username = request.args.get('username')  
     domain = request.args.get('domain')
+    password = request.args.get('password')
     data={
         "username":username,
-        "domain":domain
+        "domain":domain,
+        "password":password
         }
 
     response = search_elastic(q, type_param, page, size, data)
@@ -130,11 +136,59 @@ def login_route():
         return {"error": "Invalid credentials"}, 401
 
 @app.route('/db-info', methods=['GET'])
+@jwt_required
 def database():
     with open("info.json", 'r') as file:
         data = json.load(file)
         return jsonify(data)
 
+@app.route('/db-info-all', methods=['GET'])
+@jwt_required
+def database_all():
+    with open("databases.json", 'r', encoding='utf-8') as file:
+        data = json.load(file)
+        return jsonify(data)
+
+@app.route('/update-db', methods=['POST'])
+@jwt_required
+def update_database():
+    if 'file' not in request.files:
+        print(request.files)
+        return jsonify({"error": "No file provided"}), 400
+        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+        
+    if not file.filename.endswith('.html'):
+        return jsonify({"error": "Only HTML files are allowed"}), 400
+
+    # Save uploaded file temporarily
+    uploaded_file='database_list.html'
+    filename = secure_filename(uploaded_file)
+    file.save(filename)
+    
+    try:
+        # Parse HTML and save to JSON
+        parsed_data = parse_html_to_json(uploaded_file)
+        save_to_json(parsed_data)
+        
+        # Clean up temporary file
+        os.remove(filename)
+        
+        return jsonify({
+            "message": "Database updated successfully",
+            "entries_processed": len(parsed_data)
+        }), 200
+        
+    except Exception as e:
+        if os.path.exists(filename):
+            os.remove(filename)
+        return jsonify({"error": str(e)}), 500
+
+
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5001)
+
+

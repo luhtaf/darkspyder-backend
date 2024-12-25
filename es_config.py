@@ -21,6 +21,9 @@ def update_data_into_es(newData):
     if search_response['hits']['total']['value'] == 0:
         response = es.index(index=index_name, body=newData)
         print(f"Document indexed with new Checksum {newData['Checksum']}: {response['_id']}")
+    else:
+        doc_id = search_response['hits']['hits'][0]['_id']
+        update_response = es.update(index=index_name,id=doc_id,body={"doc": newData})
 
 def search_elastic(q, type_param, page, size, data):
     from_value = (page - 1) * size
@@ -41,7 +44,7 @@ def search_elastic(q, type_param, page, size, data):
         if q:
             query_body['query']['bool']['must'].append({
                 "query_string": {
-                    "query": f"*{q}*",
+                    "query": f"{q}",
                     "default_operator": "AND"
                 }
             })
@@ -49,7 +52,7 @@ def search_elastic(q, type_param, page, size, data):
             if data['username']:
                 query_body['query']["bool"]["must"].append({
                     "query_string": {
-                        "query": f"*{data['username']}*",
+                        "query": f"{data['username']}",
                         "default_operator": "AND",
                         "fields" : ["username"]
                     }
@@ -58,9 +61,18 @@ def search_elastic(q, type_param, page, size, data):
             if data['domain']:
                 query_body['query']["bool"]["must"].append({
                     "query_string": {
-                        "query": f"*{data['domain']}*",
+                        "query": f"{data['domain']}",
                         "default_operator": "AND",
                         "fields" : ["domain"]
+                    }
+                })
+
+            if data['password']:
+                query_body['query']["bool"]["must"].append({
+                    "query_string": {
+                        "query": f"{data['password']}",
+                        "default_operator": "AND",
+                        "fields" : ["password"]
                     }
                 })
 
@@ -102,6 +114,7 @@ def json_to_el_stealer(filename):
                 # Generate checksum for the new data
                 checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
                 newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
+                newData["threatintel"] = 'stealer1'
 
                 # Search for an existing document with the same checksum
                 search_response = es.search(
@@ -117,6 +130,10 @@ def json_to_el_stealer(filename):
                 if search_response['hits']['total']['value'] == 0:
                     response = es.index(index=index_name, body=newData)
                     print(f"Document indexed with new Checksum {newData['Checksum']}: {response['_id']}")
+                else:
+                    doc_id = search_response['hits']['hits'][0]['_id']
+                    update_response = es.update(index=index_name,id=doc_id,body={"doc": newData})
+                    print(f"Document updated with new Checksum {newData['Checksum']}: {update_response['_id']}")
             except Exception as inner_e:
                 # Handle errors for the current line and continue
                 print(f"Error processing line: {line}. Error: {inner_e}")
