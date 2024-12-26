@@ -150,12 +150,14 @@ def database_all():
         return jsonify(data)
 
 @app.route('/db-info-stealer', methods=['GET'])
+@jwt_required
 def database_stealer():
     with open("databases-list.json", 'r', encoding='utf-8') as file:
         data = json.load(file)
         return jsonify(data)
 
 @app.route('/update-db-stealer', methods=['POST'])
+@jwt_required
 def update_database_stealer():
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
