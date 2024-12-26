@@ -149,6 +149,43 @@ def database_all():
         data = json.load(file)
         return jsonify(data)
 
+@app.route('/db-info-stealer', methods=['GET'])
+def database_stealer():
+    with open("databases-list.json", 'r', encoding='utf-8') as file:
+        data = json.load(file)
+        return jsonify(data)
+
+@app.route('/update-db-stealer', methods=['POST'])
+def update_database_stealer():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if not file.filename.endswith('.json'):
+        return jsonify({"error": "Only JSON files are allowed"}), 400
+
+    # Save uploaded file temporarily
+    uploaded_file = 'databases-list.json'
+    filename = secure_filename(uploaded_file)
+    file.save(filename)
+
+    try:
+        # Reopen the file to ensure it's read from the beginning
+        with open(filename, 'r', encoding='utf-8') as f:
+            parsed_data = json.load(f)
+
+        with open('databases-list.json', 'w', encoding='utf-8') as f:
+            json.dump(parsed_data, f, indent=4)
+
+        return jsonify({"message": "Database updated successfully"}), 200
+    except json.JSONDecodeError as e:
+        return jsonify({"error": f"Error parsing JSON {e}"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/update-db', methods=['POST'])
 @jwt_required
 def update_database():
