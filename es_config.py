@@ -1,4 +1,4 @@
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
 from dotenv import load_dotenv
 import os, json, hashlib
 from trait import ResponseError
@@ -8,6 +8,41 @@ elastic_url=os.getenv("ELASTICSEARCH_URL","https://elastic:changeme@localhost:92
 es = Elasticsearch(elastic_url, verify_certs=False)
 index_name='darkspyder'
 
+def update_valid(id,valid):
+    try:
+        es.update(index=index_name,id=id,body={"doc":{"valid":valid}})
+        return {"status":200,"msg":"Success Update Valid"}
+    except Exception as e:
+        return ResponseError(e,500)
+
+def update_valid_bulk(data):
+    try:
+        bulk_operations = []
+        processed_count = 0
+        skipped_count = 0
+        
+        for id, valid in data.items():
+            if isinstance(valid, bool):
+                bulk_operations.append({
+                    "_op_type": "update",
+                    "_index": index_name,
+                    "_id": id,
+                    "doc": {"valid": valid}
+                })
+                processed_count += 1
+            else:
+                skipped_count += 1        
+        if bulk_operations:
+            helpers.bulk(es, bulk_operations)
+            
+        return {
+            "status": 200, 
+            "msg": "Success Bulk Update Valid",
+            "processed": processed_count,
+            "skipped": skipped_count
+        }
+    except Exception as e:
+        return ResponseError(e, 500)
 
 def update_data_into_es(newData):
     search_response = es.search(
@@ -24,8 +59,9 @@ def update_data_into_es(newData):
     else:
         doc_id = search_response['hits']['hits'][0]['_id']
         update_response = es.update(index=index_name,id=doc_id,body={"doc": newData})
+        print(f"Document updated with new Checksum {newData['Checksum']}: {response['_id']}")
 
-def search_elastic(q, type_param, page, size, data):
+def search_elastic(q, type_param, page, size, data, valid):
     from_value = (page - 1) * size
     query_body = {
             "query": {
@@ -34,6 +70,16 @@ def search_elastic(q, type_param, page, size, data):
                 }
             }
         }
+    
+    if valid is not None:
+        # set valid to new variable, now it is string of true and false, make new variable is boolean 
+        valid_bool = True if valid == 'true' else False
+        query_body['query']['bool']['must'].append({
+            "term": {
+                "valid": valid_bool
+            }
+        })
+    
     if type_param in ['stealer', 'breach']:
         query_body['query']['bool']['must'].append({
             "term": {

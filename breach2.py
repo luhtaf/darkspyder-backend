@@ -14,7 +14,7 @@ def formatting_data_stealer(i):
     return {
         "Data":i,
         "Source":i['source']['name'],
-        "type": "stealer"
+        "type": "breach"
     }
 
 def main():
