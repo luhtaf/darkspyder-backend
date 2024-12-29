@@ -209,7 +209,7 @@ def update_database_stealer():
 
 @app.route('/db-summary', methods=['GET'])
 @jwt_required
-def top_10_pass():
+def db_summary():
     with open("summary_db.json", 'r', encoding='utf-8') as file:
         data = json.load(file)
         return jsonify(data)
