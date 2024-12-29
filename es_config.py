@@ -70,8 +70,8 @@ def search_elastic(q, type_param, page, size, data, valid):
                 }
             }
         }
-    
-    if valid is not None:
+    print(valid)
+    if valid:
         # set valid to new variable, now it is string of true and false, make new variable is boolean 
         valid_bool = True if valid == 'true' else False
         query_body['query']['bool']['must'].append({
@@ -121,6 +121,7 @@ def search_elastic(q, type_param, page, size, data, valid):
                         "fields" : ["password"]
                     }
                 })
+        print(query_body)
 
         total_count = es.count(index=index_name, body=query_body)['count']
 

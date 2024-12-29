@@ -67,7 +67,7 @@ def main():
 def search_stealer2(q, page):
     datajson = find_data(q, page)
     final_data=[]
-    for i in datajson['List']:
+    for i in datajson:
         newData = {"_source":formatting_data(i)}
         final_data.append(newData)
     status_code=200
