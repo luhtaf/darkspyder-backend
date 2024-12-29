@@ -103,7 +103,7 @@ def start_task_update():
         subprocess.Popen(["python3", "breach2.py", q, 'username'])
         subprocess.Popen(["python3", "breach2.py", q, 'auto'])
     elif type_param == 'stealer':
-        subprocess.Popen(["python3", "breach2.py", q, 'domain'])
+        # subprocess.Popen(["python3", "breach2.py", q, 'domain'])
         subprocess.Popen(["python3", "stealer1_update_only.py", q])
         subprocess.Popen(["python3", "stealer2.py", q])
     elif type_param == 'all':
@@ -216,7 +216,7 @@ def top_10_pass():
 
 @app.route('/update-db-summary', methods=['POST'])
 @jwt_required
-def update_database_top10_pass():
+def update_database_summary():
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
