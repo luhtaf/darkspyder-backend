@@ -34,12 +34,14 @@ def jwt_required(f):
     return decorated_function
 
 @app.route("/search", methods=["GET"])
-@jwt_required
+# @jwt_required
 def start_search():
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower() 
     page = int(request.args.get('page', 1))
     size = request.args.get('size', 10)
+    if (size != "all") :
+        size = int(size)
     username = request.args.get('username')  
     domain = request.args.get('domain')
     password = request.args.get('password')
@@ -55,7 +57,7 @@ def start_search():
     return jsonify(response), 200
 
 @app.route("/search/download", methods=["GET"])
-@jwt_required
+# @jwt_required
 def download_search():
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower()
