@@ -39,7 +39,7 @@ def start_search():
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower() 
     page = int(request.args.get('page', 1))
-    size = min(int(request.args.get('size', 10)), max_query) 
+    size = request.args.get('size', 10)
     username = request.args.get('username')  
     domain = request.args.get('domain')
     password = request.args.get('password')
