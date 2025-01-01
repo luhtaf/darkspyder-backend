@@ -1,7 +1,8 @@
 from elasticsearch import Elasticsearch, helpers
 from dotenv import load_dotenv
-import os, json, hashlib
+import os, json, hashlib, csv
 from trait import ResponseError
+
 load_dotenv()
 
 elastic_url=os.getenv("ELASTICSEARCH_URL","https://elastic:changeme@localhost:9200")
@@ -122,6 +123,10 @@ def search_elastic(q, type_param, page, size, data, valid):
                 })
 
         total_count = es.count(index=index_name, body=query_body)['count']
+        
+        if size == 'all':
+            size = total_count
+            from_value = 0
 
         result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
         
@@ -136,6 +141,92 @@ def search_elastic(q, type_param, page, size, data, valid):
     else:
         return ResponseError("Please Specify Type", 400)
     
+    
+
+def download_elastic(q, type_param, data, valid):
+    query_body = {
+        "query": {
+            "bool": {
+                "must": []
+            }
+        }
+    }
+
+    if valid:
+        valid_bool = True if valid == 'true' else False
+        query_body['query']['bool']['must'].append({
+            "term": {
+                "valid": valid_bool
+            }
+        })
+
+    if type_param in ['stealer', 'breach']:
+        query_body['query']['bool']['must'].append({
+            "term": {
+                "type.keyword": type_param
+            }
+        })
+
+        if q:
+            query_body['query']['bool']['must'].append({
+                "query_string": {
+                    "query": f"*{q}*",
+                    "default_operator": "AND"
+                }
+            })
+        else:
+            if data['username']:
+                query_body['query']["bool"]["must"].append({
+                    "query_string": {
+                        "query": f"{data['username']}",
+                        "default_operator": "AND",
+                        "fields" : ["username"]
+                    }
+                })
+
+            if data['domain']:
+                query_body['query']["bool"]["must"].append({
+                    "query_string": {
+                        "query": f"{data['domain']}",
+                        "default_operator": "AND",
+                        "fields" : ["domain"]
+                    }
+                })
+
+            if data['password']:
+                query_body['query']["bool"]["must"].append({
+                    "query_string": {
+                        "query": f"{data['password']}",
+                        "default_operator": "AND",
+                        "fields" : ["password"]
+                    }
+                })
+
+        # Retrieve all documents
+        total_count = es.count(index=index_name, body=query_body)['count']
+        result = es.search(index=index_name, body=query_body, size=total_count)
+
+        if type_param == 'stealer':
+            # Write to CSV
+            csv_filename = 'stealer_data.csv'
+            with open(csv_filename, mode='w', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(['username', 'password', 'domain'])  # CSV header
+                for hit in result['hits']['hits']:
+                    source = hit['_source']
+                    writer.writerow([source.get('username'), source.get('password'), source.get('domain')])
+            return csv_filename
+
+        elif type_param == 'breach':
+            # Write to JSON
+            json_filename = 'breach_data.json'
+            with open(json_filename, mode='w') as file:
+                json.dump([hit['_source'] for hit in result['hits']['hits']], file, indent=4)
+            return json_filename
+
+    else:
+        return ResponseError("Please Specify Type", 400)
+
 
 def json_to_el_stealer(filename):
     try:

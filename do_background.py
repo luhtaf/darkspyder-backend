@@ -1,10 +1,10 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 import subprocess, jwt, datetime, json, os
 from breach1 import search_breach1
 from breach2 import search_lcheck_stealer
 from functools import wraps
 from cred import username_app, password_app, JWT_SECRET_KEY
-from es_config import search_elastic, update_valid, update_valid_bulk
+from es_config import search_elastic, update_valid, update_valid_bulk, download_elastic
 from stealer2 import search_stealer2
 from trait import ResponseError
 from parsing_db_to_json import parse_html_to_json, save_to_json
@@ -54,6 +54,28 @@ def start_search():
     response = search_elastic(q, type_param, page, size, data, valid)
     return jsonify(response), 200
 
+@app.route("/search/download", methods=["GET"])
+@jwt_required
+def download_search():
+    q = request.args.get("q", "")
+    type_param = request.args.get('type', '').strip().lower()
+    username = request.args.get('username')
+    domain = request.args.get('domain')
+    password = request.args.get('password')
+    valid = request.args.get('valid', '').strip().lower()
+
+    data = {
+        "username": username,
+        "domain": domain,
+        "password": password
+    }
+    try:
+        file_path = download_elastic(q, type_param, data, valid)
+
+        return send_file(file_path, as_attachment=True)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    
 
 @app.route("/search/update/all", methods=["GET"])
 @jwt_required
