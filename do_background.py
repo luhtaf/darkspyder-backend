@@ -40,22 +40,30 @@ def start_search():
     type_param = request.args.get('type', '').strip().lower() 
     page = int(request.args.get('page', 1))
     size = request.args.get('size', 10)
-    if (size != "all") :
-        size = int(size)
+    if (size != "all"):
+        try:
+            size = int(size)
+        except ValueError:
+            return jsonify({"error": "Invalid size parameter"}), 400
+            
     username = request.args.get('username')  
     domain = request.args.get('domain')
     password = request.args.get('password')
     
     valid = request.args.get('valid', '').strip().lower()
-    data={
-        "username":username,
-        "domain":domain,
-        "password":password
-        }
+    data = {
+        "username": username,
+        "domain": domain,
+        "password": password
+    }
 
     response = search_elastic(q, type_param, page, size, data, valid)
-    return jsonify(response), 200
-
+    
+    # Handle the size limit response
+    if response.get("status") == 400:
+        return jsonify(response), 400
+        
+    return jsonify(response), response.get("status", 200)
 @app.route("/search/download", methods=["GET"])
 # @jwt_required
 def download_search():

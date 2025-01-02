@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8" /><title>DARKSPYDER</title>
 <style>
-body {background-color: #373239;}
+body {
+    background-color: #373239;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100vh;
+}
 .content {display: flex; flex-wrap: wrap;}
 .block {width: 45%; margin: 1%; border-radius: 10px; padding: 10px; background-color: white;}
 .left {width: 80%; margin-left: 22%;}
@@ -12,25 +19,50 @@ body {background-color: #373239;}
 .block-title {font-size: 18px; font-weight: bold;}
 .block-text {font-size: 14px; margin-top: 5px; line-height: 1.5em;}
 .block-text p {margin: 5px 0;}
-.nav {background-color: #000a17; position: fixed; left: 0; top: 0; width: 22%; height: 100%; overflow: auto;}
-.nav a {color: white; display: block; padding: 10px; text-decoration: none; font-family:'Segoe UI Variable Small'}
+.nav {
+    background-color: #000a17;
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 22%;
+    height: 100vh;
+    overflow-x: hidden;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+.nav a {
+    color: white;
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    font-family: 'Segoe UI Variable Small';
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
 .nav a:hover {background-color: #373239; color: DodgerBlue;}
 .active {background-color: #4CAF50;}
 .nav-title {color: DodgerBlue; font-size: 24px; font-weight: bold; padding: 15px; font-family:'Segoe UI Variable Small'}
+.nav-links {
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-grow: 1;
+    padding-bottom: 20px;
+    width: 100%;
+}
 </style>
 </head>
 <body>
 <div class='nav'>
-<img src="http://localhost:5001/logo" alt="D A R K S P Y D E R">
+<img src="http://103.179.56.96:5001/logo" alt="D A R K S P Y D E R">
 <div class='nav-title'>Breach Database</div>
-<a href='#p1'><b>MyPertamina</b></a>
+{breach-side-bar}
+
 </div>
 <div class='left'>
 <div class='content'>
-<div id='p1' class='block'>
-<div class='block-title'><b>MyPertamina</b></div>
-<div class='block-text'><br>In November 2022, Indonesian oil and gas company Pertamina suffered a data breach on its MyPertamina service. The incident revealed 44 million records with 6 million unique email addresses, as well as names, dates of birth, gender, physical addresses and purchases.<br><br><b>📩Email: </b> <code>achdanronawijaya@gmail.com</code><br><b>📞Telephone: </b> <code>6219568203239</code><br><b>📞Telephone: </b> <code>6281299015430</code><br><b>📆Last Activity: </b> 2022-07-15 18:37:06<br><b>📆Registration date: </b> 2021-09-02 12:10:53<br><b>👤Full name: </b> ACHDAN RONAWIJAYA<br><b>💰Income: </b> 0<br><br></div>
-</div>
+{breach-card}
 </div>
 </div>
 <div class='right'>
