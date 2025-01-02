@@ -65,13 +65,13 @@ def update_data_into_es(newData):
 def search_elastic(q, type_param, page, size, data, valid):
     from_value = (page - 1) * size
     query_body = {
-            "query": {
-                "bool": {
-                    "must": []
-                }
+        "query": {
+            "bool": {
+                "must": []
             }
         }
-    
+    }
+
     if valid:
         valid_bool = True if valid == 'true' else False
         query_body['query']['bool']['must'].append({
@@ -79,7 +79,7 @@ def search_elastic(q, type_param, page, size, data, valid):
                 "valid": valid_bool
             }
         })
-    
+
     if type_param in ['stealer', 'breach']:
         query_body['query']['bool']['must'].append({
             "term": {
@@ -100,7 +100,7 @@ def search_elastic(q, type_param, page, size, data, valid):
                     "query_string": {
                         "query": f"{data['username']}",
                         "default_operator": "AND",
-                        "fields" : ["username"]
+                        "fields": ["username"]
                     }
                 })
 
@@ -109,7 +109,7 @@ def search_elastic(q, type_param, page, size, data, valid):
                     "query_string": {
                         "query": f"{data['domain']}",
                         "default_operator": "AND",
-                        "fields" : ["domain"]
+                        "fields": ["domain"]
                     }
                 })
 
@@ -118,25 +118,36 @@ def search_elastic(q, type_param, page, size, data, valid):
                     "query_string": {
                         "query": f"{data['password']}",
                         "default_operator": "AND",
-                        "fields" : ["password"]
+                        "fields": ["password"]
                     }
                 })
 
-        total_count = es.count(index=index_name, body=query_body)['count']
-        
+        try:
+            total_count = es.count(index=index_name, body=query_body)['count']
+        except Exception as e:
+            print(f"Error counting documents: {e}")
+            return ResponseError(f"Error counting documents: {e}", 500)
+
         if size == 'all':
             size = total_count
             from_value = 0
 
-        result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
-        
-        response = {
-                "page": page,
-                "size": size,
-                "total": total_count, 
-                "current_page_data": result['hits']['hits'],
-                "status": 200
+        query_body['sort'] = [
+            {
+                "valid": {
+                    "order": "desc"
+                }
             }
+        ]
+        result = es.search(index=index_name, body=query_body, from_=from_value, size=size)
+
+        response = {
+            "page": page,
+            "size": size,
+            "total": total_count,
+            "current_page_data": result['hits']['hits'],
+            "status": 200
+        }
         return response
     else:
         return ResponseError("Please Specify Type", 400)
@@ -149,7 +160,14 @@ def download_elastic(q, type_param, data, valid):
             "bool": {
                 "must": []
             }
-        }
+        },
+        "sort": [
+            {
+                "valid": {
+                    "order": "desc" 
+                }
+            }
+        ]
     }
 
     if valid:

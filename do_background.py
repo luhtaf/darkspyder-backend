@@ -346,7 +346,12 @@ def update_database():
             os.remove(filename)
         return jsonify({"error": str(e)}), 500
 
-
+@app.route('/logo', methods=['GET'])
+def serve_logo():
+    try:
+        return send_file('darkspyder-dashboard-1.png', mimetype='image/png')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5001)
