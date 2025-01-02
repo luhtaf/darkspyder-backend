@@ -9,13 +9,20 @@ elastic_url=os.getenv("ELASTICSEARCH_URL","https://elastic:changeme@localhost:92
 es = Elasticsearch(elastic_url, verify_certs=False)
 index_name='darkspyder'
 
-def update_valid(id,valid):
+def update_valid(id, valid):
     try:
-        es.update(index=index_name,id=id,body={"doc":{"valid":valid}})
-        return {"status":200,"message":"Success Update Valid"}
+        if valid is None:
+            es.update(index=index_name, id=id, body={
+                "script": {
+                    "source": "ctx._source.remove('valid')"
+                }
+            })
+            return {"status": 200, "message": "Success Delete Valid Field"}
+        else:
+            es.update(index=index_name, id=id, body={"doc": {"valid": valid}})
+            return {"status": 200, "message": "Success Update Valid"}
     except Exception as e:
-        return ResponseError(e,500)
-
+        return ResponseError(e, 500)
 def update_valid_bulk(data):
     try:
         bulk_operations = []

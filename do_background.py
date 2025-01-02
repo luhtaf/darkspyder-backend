@@ -170,8 +170,8 @@ def login_route():
 def mark_as_valid(id):
     data = request.json
     valid = data.get('valid')    
-    if not isinstance(valid, bool):
-        return jsonify({"msg": "Valid must be boolean"}), 400
+    if not isinstance(valid, bool) and valid is not None:          
+        return jsonify({"msg": "Valid must be boolean or null"}), 400
     response = update_valid(id, valid)
     return jsonify(response), response['status']
 
