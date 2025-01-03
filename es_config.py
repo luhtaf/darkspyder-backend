@@ -236,7 +236,7 @@ def download_elastic(q, type_param, data, valid):
 
         if type_param == 'stealer':
             result = es.search(index=index_name, body=query_body, size=total_count)
-            with open('template-stealer.html', 'r') as template_file:
+            with open('template-stealer.html', 'r', encoding='utf-8') as template_file:
                 html_template = template_file.read()
             
             table_rows = ''
@@ -252,7 +252,7 @@ def download_elastic(q, type_param, data, valid):
             html_content = html_template.replace('{data-stealer}', table_rows)
             
             output_filename = 'stealer_output.html'
-            with open(output_filename, 'w') as output_file:
+            with open(output_filename, 'w', encoding='utf-8') as output_file:
                 output_file.write(html_content)
             
             return output_filename
@@ -262,7 +262,7 @@ def download_elastic(q, type_param, data, valid):
             sorted_hits = sorted(result['hits']['hits'], 
                     key=lambda x: x['_source'].get('Source', '').lower())
 
-            with open('template.html', 'r') as template_file:
+            with open('template.html', 'r', encoding='utf-8') as template_file:
                 html_template = template_file.read()
             
             sidebar_links = ''
@@ -323,7 +323,7 @@ def download_elastic(q, type_param, data, valid):
             html_content = html_content.replace('{breach-card}', card_content)
             
             output_filename = 'breach_output.html'
-            with open(output_filename, 'w') as output_file:
+            with open(output_filename, 'w', encoding='utf-8') as output_file:
                 output_file.write(html_content)
             
             return output_filename
