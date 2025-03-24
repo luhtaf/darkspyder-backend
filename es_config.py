@@ -371,9 +371,10 @@ def json_to_el_stealer(filename):
                     response = es.index(index=index_name, body=newData)
                     print(f"Document indexed with new Checksum {newData['Checksum']}: {response['_id']}")
                 else:
-                    doc_id = search_response['hits']['hits'][0]['_id']
-                    update_response = es.update(index=index_name,id=doc_id,body={"doc": newData})
-                    print(f"Document updated with new Checksum {newData['Checksum']}: {update_response['_id']}")
+                    pass
+                    # doc_id = search_response['hits']['hits'][0]['_id']
+                    # update_response = es.update(index=index_name,id=doc_id,body={"doc": newData})
+                    # print(f"Document updated with new Checksum {newData['Checksum']}: {update_response['_id']}")
             except Exception as inner_e:
                 # Handle errors for the current line and continue
                 print(f"Error processing line: {line}. Error: {inner_e}")
