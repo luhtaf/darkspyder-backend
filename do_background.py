@@ -99,7 +99,8 @@ def start_task_update_with_search_all():
         subprocess.Popen(["python3", "breach2.py", q, 'username'])
         subprocess.Popen(["python3", "breach2.py", q, 'auto'])
     elif type_param == 'stealer':
-        response = search_lcheck_stealer(q, "domain")
+        response = search_lcheck_stealer(q, "origin")
+        subprocess.Popen(["python3", "breach2.py", q, 'origin'])
         subprocess.Popen(["python3", "stealer1_update_only.py", q])
         subprocess.Popen(["python3", "stealer2.py", q])
     else:
@@ -118,6 +119,7 @@ def start_task_update_with_search():
         subprocess.Popen(["python3", "breach1.py", q])
         response = search_breach1(q)
     elif type_param == 'stealer':
+        subprocess.Popen(["python3", "breach2.py", q, 'origin'])
         subprocess.Popen(["python3", "stealer2.py", q])
         response = search_stealer2(q, page)
     else:
@@ -133,12 +135,14 @@ def start_task_update():
     if type_param == 'breach':
         subprocess.Popen(["python3", "breach1.py",q])
         subprocess.Popen(["python3", "breach2.py", q, 'username'])
+        subprocess.Popen(["python3", "breach2.py", q, 'domain'])
         subprocess.Popen(["python3", "breach2.py", q, 'auto'])
     elif type_param == 'stealer':
-        # subprocess.Popen(["python3", "breach2.py", q, 'domain'])
+        subprocess.Popen(["python3", "breach2.py", q, 'origin'])
         subprocess.Popen(["python3", "stealer1_update_only.py", q])
         subprocess.Popen(["python3", "stealer2.py", q])
     elif type_param == 'all':
+        subprocess.Popen(["python3", "breach2.py", q, 'origin'])
         subprocess.Popen(["python3", "breach2.py", q, 'domain'])
         subprocess.Popen(["python3", "breach2.py", q, 'username'])
         subprocess.Popen(["python3", "breach2.py", q, 'auto'])
