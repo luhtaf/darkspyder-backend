@@ -67,7 +67,7 @@ def update_data_into_es(newData):
     else:
         doc_id = search_response['hits']['hits'][0]['_id']
         update_response = es.update(index=index_name,id=doc_id,body={"doc": newData})
-        print(f"Document updated with new Checksum {newData['Checksum']}: {response['_id']}")
+        print(f"Document updated with new Checksum {newData['Checksum']}: {update_response['_id']}")
 
 def search_elastic(q, type_param, page, size, data, valid):
     from_value = (page - 1) * size
