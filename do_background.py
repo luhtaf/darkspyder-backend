@@ -34,7 +34,7 @@ def jwt_required(f):
     return decorated_function
 
 @app.route("/search", methods=["GET"])
-@jwt_required
+# @jwt_required
 def start_search():
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower() 
