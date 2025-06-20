@@ -52,15 +52,33 @@ def main():
         print("Sukses Query into Source, Starting Save Data Into DB")
         for i in datajson:
             if type == "origin":
-                newData = formatting_data_stealer(i)
-                threat_intel = "stealer3"
+                # Check if origin is an array and iterate through each domain
+                if "origin" in i and isinstance(i["origin"], list):
+                    for domain in i["origin"]:
+                        # Create a copy of the data with single domain
+                        single_domain_data = i.copy()
+                        single_domain_data["origin"] = domain
+                        newData = formatting_data_stealer(single_domain_data)
+                        threat_intel = "stealer3"
+                        checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
+                        newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
+                        newData["threatintel"] = threat_intel
+                        update_data_into_es(newData)
+                else:
+                    # Handle single domain or no domain case
+                    newData = formatting_data_stealer(i)
+                    threat_intel = "stealer3"
+                    checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
+                    newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
+                    newData["threatintel"] = threat_intel
+                    update_data_into_es(newData)
             else:
                 newData = formatting_data_breach(i)
                 threat_intel = "breach2"
-            checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
-            newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
-            newData["threatintel"] = threat_intel
-            update_data_into_es(newData)
+                checksum_input = json.dumps(newData, sort_keys=True)  # Sort keys to ensure consistent hashing
+                newData["Checksum"] = hashlib.sha256(checksum_input.encode()).hexdigest()
+                newData["threatintel"] = threat_intel
+                update_data_into_es(newData)
     else:
         print("Please Input Argumen")
 
