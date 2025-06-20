@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """
-Script untuk memperbaiki data di Elasticsearch yang memiliki array di field origin.
+Script untuk memperbaiki data di Elasticsearch yang memiliki multi-domain.
 Script ini akan:
-1. Mencari data dengan origin berupa array
-2. Membuat record baru untuk setiap domain dalam array
-3. Menghapus record lama yang memiliki array origin
+1. Mencari data dengan origin berupa array atau domain berupa comma-separated string
+2. Membuat record baru untuk setiap domain
+3. Menghapus record lama yang memiliki multi-domain
+
+Contoh data yang akan diperbaiki:
+- Array origin: {"origin": ["domain1.com", "domain2.com"]}
+- Comma-separated domain: {"domain": "domain1.com, domain2.com, domain3.com"}
 """
 
 import json
@@ -38,23 +42,42 @@ def formatting_data_stealer(data):
     
     return newData
 
-def find_array_origin_data(search_index=None, size=1000):
-    """Mencari data dengan origin berupa array"""
+def find_multi_domain_data(search_index=None, size=1000):
+    """Mencari data dengan domain berupa array atau comma-separated string"""
     if search_index is None:
         search_index = index_name
     
+    # Query untuk mencari data dengan domain yang mengandung koma (comma-separated)
+    # atau origin yang berupa array
     query = {
         "query": {
             "bool": {
-                "must": [
-                    {"exists": {"field": "origin"}},
-                    {"script": {
-                        "script": {
-                            "source": "doc['origin'].size() > 1",
-                            "lang": "painless"
+                "should": [
+                    # Cari domain yang mengandung koma
+                    {
+                        "bool": {
+                            "must": [
+                                {"exists": {"field": "domain"}},
+                                {"wildcard": {"domain": "*,*"}}
+                            ]
                         }
-                    }}
-                ]
+                    },
+                    # Cari origin yang berupa array (lebih dari 1 element)
+                    {
+                        "bool": {
+                            "must": [
+                                {"exists": {"field": "origin"}},
+                                {"script": {
+                                    "script": {
+                                        "source": "doc['origin'].size() > 1",
+                                        "lang": "painless"
+                                    }
+                                }}
+                            ]
+                        }
+                    }
+                ],
+                "minimum_should_match": 1
             }
         },
         "size": size
@@ -64,23 +87,46 @@ def find_array_origin_data(search_index=None, size=1000):
         response = es.search(index=search_index, body=query)
         return response['hits']['hits']
     except Exception as e:
-        print(f"Error searching for array origin data: {e}")
+        print(f"Error searching for multi-domain data: {e}")
         return []
 
-def create_new_records(original_data, doc_id, index_name):
-    """Membuat record baru untuk setiap domain dalam array origin"""
+def create_new_records(original_data, doc_id, target_index):
+    """Membuat record baru untuk setiap domain dalam array origin atau comma-separated domain"""
     source_data = original_data['_source']
+    new_records = []
+    domains = []
     
-    if 'origin' not in source_data or not isinstance(source_data['origin'], list):
-        print(f"Skipping document {doc_id}: origin is not an array")
+    # Cek apakah ada origin array
+    if 'origin' in source_data and isinstance(source_data['origin'], list):
+        print(f"Processing array origin: {source_data['origin']}")
+        domains = source_data['origin']
+        source_field = 'origin'
+    # Cek apakah ada domain dengan koma
+    elif 'domain' in source_data and ',' in str(source_data['domain']):
+        print(f"Processing comma-separated domain: {source_data['domain']}")
+        # Split domain berdasarkan koma dan bersihkan whitespace
+        domains = [d.strip() for d in source_data['domain'].split(',') if d.strip()]
+        source_field = 'domain'
+    else:
+        print(f"Skipping document {doc_id}: no multi-domain data found")
         return []
     
-    new_records = []
+    print(f"Found {len(domains)} domains to process")
     
-    for domain in source_data['origin']:
+    for domain in domains:
+        # Skip domain kosong atau yang hanya berisi titik
+        if not domain or domain.strip() in ['', '.', '...', '....', '.....']:
+            continue
+            
         # Buat copy data dengan single domain
         new_data = source_data.copy()
-        new_data['origin'] = domain
+        
+        # Hapus field origin jika ada (karena akan dikonversi ke domain)
+        if 'origin' in new_data:
+            del new_data['origin']
+        
+        # Set domain tunggal
+        new_data['domain'] = domain.strip()
         
         # Format sesuai dengan formatting_data_stealer
         formatted_data = formatting_data_stealer(new_data)
@@ -94,15 +140,15 @@ def create_new_records(original_data, doc_id, index_name):
         
         # Simpan ke Elasticsearch
         try:
-            response = es.index(index=index_name, body=formatted_data)
+            response = es.index(index=target_index, body=formatted_data)
             new_records.append({
                 'id': response['_id'],
-                'domain': domain,
+                'domain': domain.strip(),
                 'data': formatted_data
             })
-            print(f"✓ Created new record for domain '{domain}' with ID: {response['_id']}")
+            print(f"✓ Created new record for domain '{domain.strip()}' with ID: {response['_id']}")
         except Exception as e:
-            print(f"✗ Error creating record for domain '{domain}': {e}")
+            print(f"✗ Error creating record for domain '{domain.strip()}': {e}")
     
     return new_records
 
@@ -116,78 +162,86 @@ def delete_old_record(doc_id, index_name):
         print(f"✗ Error deleting record {doc_id}: {e}")
         return False
 
-def process_array_origin_data(dry_run=True):
-    """Proses utama untuk memperbaiki data array origin"""
-    print("=" * 60)
-    print("ELASTICSEARCH ARRAY ORIGIN FIXER")
-    print("=" * 60)
+def process_multi_domain_data(dry_run=True):
+    """Proses utama untuk memperbaiki data multi-domain (array origin atau comma-separated domain)"""
+    print("=" * 70)
+    print("ELASTICSEARCH MULTI-DOMAIN FIXER")
+    print("=" * 70)
     
     if dry_run:
         print("🔍 DRY RUN MODE - No changes will be made")
     else:
         print("⚠️  LIVE MODE - Changes will be applied to Elasticsearch")
     
-    print("\n1. Searching for documents with array origin...")
+    print("\n1. Searching for documents with multi-domain data...")
     
-    # Cari data dengan array origin
-    array_docs = find_array_origin_data()
+    # Cari data dengan multi-domain (array origin atau comma-separated domain)
+    multi_docs = find_multi_domain_data()
     
-    if not array_docs:
-        print("✓ No documents found with array origin. Database is clean!")
+    if not multi_docs:
+        print("✓ No documents found with multi-domain data. Database is clean!")
         return
     
-    print(f"Found {len(array_docs)} documents with array origin")
+    print(f"Found {len(multi_docs)} documents with multi-domain data")
     
     total_processed = 0
     total_created = 0
     total_deleted = 0
     
-    for doc in array_docs:
+    for doc in multi_docs:
         doc_id = doc['_id']
-        index_name = doc['_index']
+        doc_index = doc['_index']
         source_data = doc['_source']
         
         print(f"\n--- Processing Document {doc_id} ---")
-        print(f"Index: {index_name}")
-        print(f"Original origin: {source_data.get('origin', 'N/A')}")
+        print(f"Index: {doc_index}")
         
-        if isinstance(source_data.get('origin'), list):
-            origin_count = len(source_data['origin'])
-            print(f"Array contains {origin_count} domains: {source_data['origin']}")
+        # Tentukan jenis multi-domain data
+        domain_count = 0
+        if 'origin' in source_data and isinstance(source_data['origin'], list):
+            domain_count = len(source_data['origin'])
+            print(f"Array origin contains {domain_count} domains: {source_data['origin']}")
+        elif 'domain' in source_data and ',' in str(source_data['domain']):
+            domains = [d.strip() for d in source_data['domain'].split(',') if d.strip()]
+            domain_count = len(domains)
+            print(f"Comma-separated domain contains {domain_count} domains: {source_data['domain']}")
+        else:
+            print(f"Skipping document {doc_id}: no recognizable multi-domain pattern")
+            continue
+        
+        if not dry_run:
+            # Buat record baru untuk setiap domain
+            new_records = create_new_records(doc, doc_id, doc_index)
             
-            if not dry_run:
-                # Buat record baru untuk setiap domain
-                new_records = create_new_records(doc, doc_id, index_name)
+            if new_records:
+                total_created += len(new_records)
                 
-                if new_records:
-                    total_created += len(new_records)
-                    
-                    # Hapus record lama
-                    if delete_old_record(doc_id, index_name):
-                        total_deleted += 1
-                        print(f"✓ Successfully processed document {doc_id}")
-                    else:
-                        print(f"✗ Failed to delete old record {doc_id}")
-                        # Rollback: hapus record baru yang sudah dibuat
-                        print("Rolling back new records...")
-                        for record in new_records:
-                            try:
-                                es.delete(index=index_name, id=record['id'])
-                                print(f"  Rolled back record {record['id']}")
-                            except:
-                                print(f"  Failed to rollback record {record['id']}")
+                # Hapus record lama
+                if delete_old_record(doc_id, doc_index):
+                    total_deleted += 1
+                    print(f"✓ Successfully processed document {doc_id}")
                 else:
-                    print(f"✗ Failed to create new records for document {doc_id}")
+                    print(f"✗ Failed to delete old record {doc_id}")
+                    # Rollback: hapus record baru yang sudah dibuat
+                    print("Rolling back new records...")
+                    for record in new_records:
+                        try:
+                            es.delete(index=doc_index, id=record['id'])
+                            print(f"  Rolled back record {record['id']}")
+                        except:
+                            print(f"  Failed to rollback record {record['id']}")
             else:
-                print(f"[DRY RUN] Would create {origin_count} new records and delete original")
-                total_created += origin_count
-                total_deleted += 1
+                print(f"✗ Failed to create new records for document {doc_id}")
+        else:
+            print(f"[DRY RUN] Would create {domain_count} new records and delete original")
+            total_created += domain_count
+            total_deleted += 1
         
         total_processed += 1
     
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print("SUMMARY")
-    print("=" * 60)
+    print("=" * 70)
     print(f"Documents processed: {total_processed}")
     print(f"New records created: {total_created}")
     print(f"Old records deleted: {total_deleted}")
@@ -217,7 +271,7 @@ def main():
             return
     
     try:
-        process_array_origin_data(dry_run=dry_run)
+        process_multi_domain_data(dry_run=dry_run)
     except KeyboardInterrupt:
         print("\n\n⚠️  Operation cancelled by user")
     except Exception as e:
