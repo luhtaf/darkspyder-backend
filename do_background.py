@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, send_file
-import subprocess, jwt, datetime, json, os
+import subprocess, jwt, datetime, json, os, string, random
 from breach1 import search_breach1
 from breach2 import search_lcheck_stealer
 from functools import wraps
@@ -9,6 +9,10 @@ from stealer2 import search_stealer2
 from trait import ResponseError
 from parsing_db_to_json import parse_html_to_json, save_to_json
 from werkzeug.utils import secure_filename
+from init_mongo import mongo_db
+from bson import ObjectId
+
+
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = './'
@@ -25,13 +29,26 @@ def jwt_required(f):
             return jsonify({"error": "Missing token"}), 401
         try:
             # Validate JWT
-            jwt.decode(token.split("Bearer ")[1], JWT_SECRET_KEY, algorithms=["HS256"])
+            decoded = jwt.decode(token.split("Bearer ")[1], JWT_SECRET_KEY, algorithms=["HS256"])
+            
+            # Check if it's the new user_id based login or old username based
+            if 'user_id' in decoded:
+                # Verify user_id still exists in database
+                from bson import ObjectId
+                accounts_collection = mongo_db.get_accounts_collection()
+                if not accounts_collection.find_one({"_id": ObjectId(decoded['user_id'])}):
+                    return jsonify({"error": "Invalid user"}), 401
+                    
         except jwt.ExpiredSignatureError:
             return jsonify({"error": "Token expired"}), 401
         except jwt.InvalidTokenError:
             return jsonify({"error": "Invalid token"}), 401
+        except Exception as e:
+            return jsonify({"error": "Invalid user ID format"}), 401
         return f(*args, **kwargs)
     return decorated_function
+
+
 
 @app.route("/search", methods=["GET"])
 # @jwt_required
@@ -364,6 +381,89 @@ def serve_logo():
         return send_file('darkspyder-dashboard-1.png', mimetype='image/png')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/register', methods=['POST'])
+def register():
+    try:
+        # Generate access ID (18-22 characters, alphanumeric)
+        length = random.randint(18, 22)
+        characters = string.ascii_letters + string.digits
+        access_id = ''.join(random.choice(characters) for _ in range(length))
+        
+        # Check if access_id already exists (very unlikely but good practice)
+        accounts_collection = mongo_db.get_accounts_collection()
+        while accounts_collection.find_one({"access_id": access_id}):
+            access_id = ''.join(random.choice(characters) for _ in range(length))
+        
+        # Save to MongoDB
+        account_data = {
+            "access_id": access_id,
+            "created_at": datetime.datetime.now(),
+            "last_login": None,
+            "login_history": []  # Initialize empty login history array
+        }
+        
+        result = accounts_collection.insert_one(account_data)
+        
+        if result.inserted_id:
+            return jsonify({
+                "access_id": access_id,
+                "message": "Account registered successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Failed to register account"}), 500
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/new-login', methods=['POST'])
+def new_login():
+    try:
+        data = request.json
+        access_id = data.get('access_id')
+        
+        if not access_id:
+            return jsonify({"error": "Access ID is required"}), 400
+        
+        # Check if access_id exists in MongoDB
+        accounts_collection = mongo_db.get_accounts_collection()
+        account = accounts_collection.find_one({"access_id": access_id})
+        
+        if not account:
+            return jsonify({"error": "Invalid access ID"}), 401
+        
+        # Get current timestamp
+        current_time = datetime.datetime.now()
+        
+        # Update last login and append to login history
+        accounts_collection.update_one(
+            {"access_id": access_id},
+            {
+                "$set": {"last_login": current_time},
+                "$push": {
+                    "login_history": {
+                        "timestamp": current_time,
+                        "ip_address": request.remote_addr
+                    }
+                }
+            }
+        )
+        
+        # Generate JWT token with user_id (MongoDB _id)
+        token = jwt.encode({
+            "user_id": str(account["_id"]),  # Convert ObjectId to string
+            "exp": datetime.datetime.now() + datetime.timedelta(hours=1)
+        }, JWT_SECRET_KEY, algorithm="HS256")
+        
+        return jsonify({
+            "token": token,
+            "message": "Login successful"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5001)
