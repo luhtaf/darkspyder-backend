@@ -6,3 +6,4 @@ python-dotenv
 cryptography
 telethon
 pymongo
+pyotp
