@@ -11,7 +11,7 @@ from parsing_db_to_json import parse_html_to_json, save_to_json
 from werkzeug.utils import secure_filename
 from init_mongo import mongo_db
 from bson import ObjectId
-
+from handle_totp import generate_url_otp, verify_totp, generate_secret
 
 
 app = Flask(__name__)
@@ -20,6 +20,11 @@ app.config['UPLOAD_FOLDER'] = './'
 
 max_query=1000
 
+def get_jwt_data(token):
+    if not token:
+        return jsonify({"error": "Missing token"}), 401
+    
+    return jwt.decode(token.split("Bearer ")[1], JWT_SECRET_KEY, algorithms=["HS256"])
 
 def jwt_required(f):
     @wraps(f)
@@ -29,7 +34,7 @@ def jwt_required(f):
             return jsonify({"error": "Missing token"}), 401
         try:
             # Validate JWT
-            decoded = jwt.decode(token.split("Bearer ")[1], JWT_SECRET_KEY, algorithms=["HS256"])
+            decoded = get_jwt_data(token)
             
             # Check if it's the new user_id based login or old username based
             if 'user_id' in decoded:
@@ -395,19 +400,25 @@ def register():
         while accounts_collection.find_one({"access_id": access_id}):
             access_id = ''.join(random.choice(characters) for _ in range(length))
         
+        secret = generate_secret()
         # Save to MongoDB
         account_data = {
             "access_id": access_id,
             "created_at": datetime.datetime.now(),
             "last_login": None,
-            "login_history": []  # Initialize empty login history array
+            "login_history": [],  # Initialize empty login history array,
+            "secret":secret,
+            "using_totp": True
         }
         
         result = accounts_collection.insert_one(account_data)
+        user_id = str(result.inserted_id)
+        provision_url, secret = generate_url_otp(secret=secret,username=user_id)
         
         if result.inserted_id:
             return jsonify({
                 "access_id": access_id,
+                "provision_url": provision_url,
                 "message": "Account registered successfully"
             }), 200
         else:
@@ -421,9 +432,13 @@ def new_login():
     try:
         data = request.json
         access_id = data.get('access_id')
+        token = data.get('totp')
         
         if not access_id:
             return jsonify({"error": "Access ID is required"}), 400
+    
+        if not token:
+            return jsonify({"error": "TOTP token is required"}), 400
         
         # Check if access_id exists in MongoDB
         accounts_collection = mongo_db.get_accounts_collection()
@@ -432,6 +447,10 @@ def new_login():
         if not account:
             return jsonify({"error": "Invalid access ID"}), 401
         
+        totp_valid = verify_totp(account['secret'],token)
+        if not totp_valid:
+            return jsonify({"error": "Invalid TOTP token"}), 401
+
         # Get current timestamp
         current_time = datetime.datetime.now()
         
