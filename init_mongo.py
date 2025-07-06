@@ -14,9 +14,13 @@ class MongoDB:
         self.client = MongoClient(MONGO_URI)
         self.db = self.client[MONGO_DB_NAME]
         self.accounts = self.db.account
+        self.pricings = self.db.pricing
     
     def get_accounts_collection(self):
         return self.accounts
+
+    def get_pricings_collection(self):
+        return self.pricings
     
     def close_connection(self):
         self.client.close()

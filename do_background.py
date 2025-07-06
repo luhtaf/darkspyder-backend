@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, send_file
-import subprocess, jwt, datetime, json, os, string, random
+from flask.json.provider import DefaultJSONProvider
+import subprocess, jwt, datetime, json, os, string, random, threading
 from breach1 import search_breach1
 from breach2 import search_lcheck_stealer
 from functools import wraps
@@ -10,11 +11,23 @@ from trait import ResponseError
 from parsing_db_to_json import parse_html_to_json, save_to_json
 from werkzeug.utils import secure_filename
 from init_mongo import mongo_db
-from bson import ObjectId
+from init_payment import payment
+from bson import ObjectId, json_util
 from handle_totp import generate_url_otp, verify_totp, generate_secret
+from dateutil.relativedelta import relativedelta
+from background_function import background_task
 
+class CustomJSONProvider(DefaultJSONProvider):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
 
 app = Flask(__name__)
+app.json_provider_class = CustomJSONProvider
+app.json = app.json_provider_class(app)
 app.config['UPLOAD_FOLDER'] = './'
 
 
@@ -49,6 +62,7 @@ def jwt_required(f):
         except jwt.InvalidTokenError:
             return jsonify({"error": "Invalid token"}), 401
         except Exception as e:
+            print(e)
             return jsonify({"error": "Invalid user ID format"}), 401
         return f(*args, **kwargs)
     return decorated_function
@@ -87,7 +101,7 @@ def start_search():
         
     return jsonify(response), response.get("status", 200)
 @app.route("/search/download", methods=["GET"])
-@jwt_required
+# @jwt_required
 def download_search():
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower()
@@ -95,6 +109,7 @@ def download_search():
     domain = request.args.get('domain')
     password = request.args.get('password')
     valid = request.args.get('valid', '').strip().lower()
+    logo_url = request.args.get('logo_url', '').strip().lower()
 
     data = {
         "username": username,
@@ -102,7 +117,7 @@ def download_search():
         "password": password
     }
     try:
-        file_path = download_elastic(q, type_param, data, valid)
+        file_path = download_elastic(q, type_param, data, valid, logo_url)
 
         return send_file(file_path, as_attachment=True)
     except ValueError as e:
@@ -482,6 +497,368 @@ def new_login():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@app.route('/pricing',methods=['GET'])
+@jwt_required
+def get_pricing():
+    try:
+        pricing_collection = mongo_db.get_pricings_collection()
+        pricings = pricing_collection.find({})
+        new_pricings = list(pricings.limit(0))
+        return jsonify({
+            "data":new_pricings,
+            "message": "Success Get Pricing"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}, 500)
+
+
+@app.route('/asset-list',methods=['POST'])
+@jwt_required
+def get_asset_list():
+    try:
+        data = request.json
+        idPricing = data.get('idPricing')
+        plan = data.get('plan')
+        if not idPricing or not plan:
+            return jsonify({"error": "idPricing and plan are required"}), 400
+            
+        allowed_plans = ['monthly', 'quarterly', 'yearly']
+        if plan not in allowed_plans:
+            return jsonify({"error": f"Invalid plan. Allowed values: {allowed_plans}"}), 400
+
+        pricing_collection = mongo_db.get_pricings_collection()
+        pricing = pricing_collection.find_one({"_id": ObjectId(idPricing)})
+
+        if not pricing:
+            return jsonify({"error": "Pricing not found"}), 404
+
+        # Pastikan plan tersedia di pricing
+        if plan not in pricing:
+            return jsonify({"error": f"Plan '{plan}' not found in pricing data"}), 400
+        
+        price_value =  pricing[plan]
+        try:
+            price_value = float(price_value)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Contact Sales"}), 400
+        
+        # tax = 1.2%
+        tax=101.2
+        price = price_value * tax / 100
+        list = payment.get_list(price)
+        return jsonify({
+            "data":list,
+            "message": "Success Get Asset List"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/create-invoice',methods=['POST'])
+@jwt_required
+def create_invoice():
+    try:
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        filter = {"_id": ObjectId(user_id)}
+    
+        data = request.json
+        idPricing = data.get('idPricing')
+        plan = data.get('plan')
+        if not idPricing or not plan:
+            return jsonify({"error": "idPricing and plan are required"}), 400
+            
+        allowed_plans = ['monthly', 'quarterly', 'yearly']
+        if plan not in allowed_plans:
+            return jsonify({"error": f"Invalid plan. Allowed values: {allowed_plans}"}), 400
+
+        pricing_collection = mongo_db.get_pricings_collection()
+        filter_pricing = {"_id": ObjectId(idPricing)}
+        pricing = pricing_collection.find_one(filter_pricing)
+        
+        if not pricing:
+            return jsonify({"error": "Pricing not found"}), 404
+
+        # Pastikan plan tersedia di pricing
+        if plan not in pricing:
+            return jsonify({"error": f"Plan '{plan}' not found in pricing data"}), 400
+        
+
+        
+        price_value =  pricing[plan]
+        try:
+            price_value = float(price_value)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Contact Sales"}), 400
+        
+        # tax = 1.2%
+        tax=101.2
+        price = price_value * tax / 100
+        list = payment.create_invoice(price)
+
+        new_data = {
+            "id":idPricing, 
+            "plan":plan,
+            "domain":pricing['domain'],
+            "invoice":list
+            }
+        updated_account = accounts_collection.update_one(filter, {"$push": {"transaction":new_data}})
+
+        if updated_account.matched_count == 0:
+            return jsonify({"error": "Error update plan in your account"}), 404
+        
+        return jsonify({
+            "data":list,
+            "message": "Success Create Payment"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/create-payment',methods=['POST'])
+@jwt_required
+def create_payment():
+    try:
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        filter = {"_id": ObjectId(user_id)}
+
+
+        data = request.json
+        InvoiceId = data.get("invoiceId")
+        AssetCode = data.get("assetCode")
+        BlockchainCode = data.get("blockchainCode")
+        IsEvm = data.get("isEvm")
+
+        required_fields = ["invoiceId", "assetCode", "blockchainCode", "isEvm"]
+        missing = [f for f in required_fields if f not in data or data[f] is None]
+        if missing:
+            return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        
+        array_filters=[{"elem.invoice.Id": InvoiceId}]
+
+        list = payment.create_payment(InvoiceId, AssetCode, BlockchainCode, IsEvm)
+        set_data = {"$set": {"transaction.$[elem].payment": list}}
+        
+        result = accounts_collection.update_one(
+            filter,
+            set_data,
+            array_filters=array_filters
+        )
+
+        if result.modified_count == 0:
+            return jsonify({"error": "Error update plan in your account"}), 404
+
+        return jsonify({
+            "data":list,
+            "message": "Success Create Payment"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/my-payment',methods=['GET'])
+@jwt_required
+def my_payment():
+    try:
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        account = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        list = account.get('transaction',[])
+        
+        return jsonify({
+            "data":list,
+            "message": "Success Get My Payment"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/my-plan',methods=['GET'])
+@jwt_required
+def my_plan():
+    try:
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        account = accounts_collection.find_one(
+            {"_id": ObjectId(user_id)}, 
+            {"_id": 0, "myPlan":1}
+            )
+        list = account.get('myPlan',{})
+        list['expired']=str(list['expired'])
+        return jsonify({
+            "data":list,
+            "message": "Success Get My Plan"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/register-domain',methods=['POST'])
+@jwt_required
+def register_domain():
+    try:
+        data = request.json
+        selected_domains = data.get('selected_domains')
+        if not isinstance(selected_domains, list) or not all(isinstance(item, str) for item in selected_domains):
+            raise Exception("selected_domain must be array of string")
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        filter = {"_id": ObjectId(user_id)}
+        account = accounts_collection.find_one(
+            filter, 
+            {"_id": 0, "myPlan":1}
+        )
+        plan_info  = account.get('myPlan', None)
+        if plan_info is None:
+            raise Exception("User does not have an active plan")
+        if plan_info ['expired']<datetime.datetime.now():
+            return jsonify({"error": "Your plan has expired"}), 403
+        domain_count = int(plan_info['domain'])
+        if len(selected_domains)>domain_count:
+            return jsonify({"error": "You have exceeded the number of domains allowed in your plan"}), 403
+        set_data = {
+            "$set": {
+                "myPlan.registered_domain": selected_domains
+                }
+        }
+        accounts_collection.update_one(
+            filter,
+            set_data
+        )
+
+        return jsonify({
+            "data": None,
+            "message": "Success Register Domain"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/get-payment/<id>',methods=['GET'])
+@jwt_required
+def my_payment_detail(id):
+    try:
+        type = request.args.get('type','payment')
+        if not type:
+            return jsonify({"error": "Type is required"}), 400
+
+        allowed_types = ['payment', 'invoice']
+        if type not in allowed_types:
+            return jsonify({"error": f"Invalid type. Allowed values: {allowed_types}"}), 400
+
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        filter = {"_id": ObjectId(user_id)}
+        if type == "payment":
+            filter['transaction.payment.Id']=id
+        elif type == "invoice":
+            filter['transaction.invoice.Id']=id
+        selected_filter = {"_id": 0, "transaction.$": 1}  
+        account = accounts_collection.find_one(filter, selected_filter)
+        if account == None:
+            return jsonify({"error": "Transaction Not Found"}), 404
+        list = account.get('transaction',[])
+
+        return jsonify({
+            "data":list,
+            "message": "Success Get My Payment"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+
+@app.route('/process-payment',methods=['POST'])
+@jwt_required
+def process_payment():
+    try:
+        accounts_collection = mongo_db.get_accounts_collection()
+
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+
+        data = request.json
+        PaymentId = data.get("paymentId")
+        
+        required_fields = ["paymentId"]
+        missing = [f for f in required_fields if f not in data or data[f] is None]
+        if missing:
+            return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        
+        filter = {"_id": ObjectId(user_id), "transaction.payment.Id": PaymentId}
+        user = accounts_collection.find_one(
+            filter,
+            {"_id": 0, "transaction.$": 1}
+        )
+        current_payment = user.get("transaction", None)
+        if current_payment is None:
+            return jsonify({"error": "Transaction Not Found"}), 404
+        current_payment=current_payment[0]
+
+        payment_data = payment.get_payment(PaymentId)
+        if payment_data['Status']==0:
+            return jsonify({"error": "Plan is not Paid yet"}), 400
+        
+        set_data = {
+            "$set": {
+                "transaction.$[elem].payment": payment_data
+            }
+        }
+        if payment_data.Status==100 and current_payment.payment.Status==0:
+            now = datetime.datetime.now()
+            if current_payment['plan']=='monthly':
+                expired = now + relativedelta(months=1)
+            elif current_payment['plan']=='quarterly':
+                expired = now + relativedelta(months=3)
+            elif current_payment['plan']=='yearly':
+                expired = now + relativedelta(years=1)
+            
+            set_data['$set']['myPlan']={
+                "plan":current_payment['id'],
+                "expired": expired,
+                "domain":current_payment['domain']
+            }
+        
+        array_filters=[{"elem.payment.Id": payment_data['Id']}]
+        result = accounts_collection.update_one(
+            filter,
+            set_data,
+            array_filters = array_filters
+            )
+
+        if result.matched_count == 0:
+            return jsonify({"error": "Payment ID not found for current user"}), 404
+
+        return jsonify({
+            "data":payment_data,
+            "message": "Success Get Payment Data"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/background-check")
+@jwt_required
+def cek_jadwal():
+    token = request.headers.get("Authorization", None)
+    if not token:
+        return jsonify({"error": "Authorization token missing"}), 400
+    data = request.json
+    paymentId = data.paymentId
+    thread = threading.Thread(target=background_task, args=(token,paymentId,))
+    thread.daemon = True
+    thread.start()
+    return jsonify({"message": "Scheduled background job started with token"}), 200
 
 
 if __name__ == "__main__":

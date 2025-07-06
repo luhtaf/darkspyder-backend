@@ -1,0 +1,124 @@
+[
+    {
+        "domain":"1",
+        "description":"For small-scale security monitoring",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "24/7 vulnerability scanning",
+            "Real-time alerts",
+            "Basic reporting"
+        ],
+        "monthly":"600",
+        "quarterly":"1620",
+        "yearly":"5760"
+    },
+    {
+        "domain":"5",
+        "description":"For growing businesses",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "Priority scanning queue",
+            "Advanced reporting",
+            "API access",
+            "Email support"
+        ],
+        "monthly":"900",
+        "quarterly":"2430",
+        "yearly":"8640",
+        "isPopular":true
+    },
+    {
+        "domain":"10",
+        "description":"For professional security teams",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "Dedicated scan nodes",
+            "Custom scan profiles",
+            "Scheduled scanning",
+            "Phone & email support"
+        ],
+        "monthly":"1600",
+        "quarterly":"4320",
+        "yearly":"15360"
+    },
+    {
+        "domain":"20",
+        "description":"For enterprise security operations",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "Dedicated account manager",
+            "Compliance reporting",
+            "Integration support",
+            "24/7 technical support"
+        ],
+        "monthly":"2700",
+        "quarterly":"7290",
+        "yearly":"25920"
+    },
+    {
+        "domain":"40",
+        "description":"For large-scale security programs",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "Custom SLAs",
+            "Executive reports",
+            "Onboarding assistance",
+            "Dedicated support line"
+        ],
+        "monthly":"5000",
+        "quarterly":"13500",
+        "yearly":"48000"
+    },
+    {
+        "domain":"60",
+        "description":"For large-scale security programs",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "Custom SLAs",
+            "Executive reports",
+            "Onboarding assistance",
+            "Dedicated support line"
+        ],
+        "monthly":"6000",
+        "quarterly":"16200",
+        "yearly":"57600"
+    },
+    {
+        "domain":"unlimited",
+        "description":"For global-scale security operations",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "Unlimited domains",
+            "Dedicated security advisor",
+            "Enterprise integrations",
+            "Highest priority support"
+        ],
+        "monthly":"10000",
+        "quarterly":"27000",
+        "yearly":"96000"
+    },
+    {
+        "domain":"unlimited",
+        "description":"Lifetime access for organizations with the highest security needs",
+        "features":[
+            "Unlimited scans",
+            "Unlimited assets per domain",
+            "Unlimited domains",
+            "Dedicated security advisor",
+            "Enterprise integrations",
+            "Highest priority support",
+            "Lifetime access"
+        ],
+        "monthly":"Contact Sales",
+        "quarterly":"Contact Sales",
+        "yearly":"Contact Sales",
+        "isContact":true
+    }
+]

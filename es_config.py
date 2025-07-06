@@ -8,7 +8,7 @@ load_dotenv()
 elastic_url=os.getenv("ELASTICSEARCH_URL","https://elastic:changeme@localhost:9200")
 es = Elasticsearch(elastic_url, verify_certs=False)
 index_name='darkspyder'
-
+default_logo_url = os.getenv("DEFAULT_LOGO_URL")
 def update_valid(id, valid):
     try:
         if valid is None:
@@ -165,7 +165,9 @@ def search_elastic(q, type_param, page, size, data, valid):
     
     
 
-def download_elastic(q, type_param, data, valid):
+def download_elastic(q, type_param, data, valid, logo_url=''):
+    if logo_url=='':
+        logo_url = default_logo_url
     query_body = {
         "query": {
             "bool": {
@@ -250,6 +252,7 @@ def download_elastic(q, type_param, data, valid):
                 table_rows += row
             
             html_content = html_template.replace('{data-stealer}', table_rows)
+            html_content = html_content.replace('{logo-url}', logo_url)
             
             output_filename = 'stealer_output.html'
             with open(output_filename, 'w', encoding='utf-8') as output_file:
@@ -321,6 +324,7 @@ def download_elastic(q, type_param, data, valid):
             # Replace placeholders in template
             html_content = html_template.replace('{breach-side-bar}', sidebar_links)
             html_content = html_content.replace('{breach-card}', card_content)
+            html_content = html_content.replace('{logo-url}', logo_url)
             
             output_filename = 'breach_output.html'
             with open(output_filename, 'w', encoding='utf-8') as output_file:
