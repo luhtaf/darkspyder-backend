@@ -39,6 +39,137 @@ def get_jwt_data(token):
     
     return jwt.decode(token.split("Bearer ")[1], JWT_SECRET_KEY, algorithms=["HS256"])
 
+def extract_domain_from_url(url_or_domain):
+    """
+    Extract base domain from URL or domain string
+    Examples:
+    - https://sub.example.com/path -> example.com
+    - sub.example.com -> example.com  
+    - example.com -> example.com
+    - /path -> None (invalid, no domain)
+    """
+    from urllib.parse import urlparse
+    
+    # Handle edge cases
+    if not url_or_domain or url_or_domain.strip() == "":
+        return None
+        
+    # If it starts with just a path (like /path), it's not a valid domain
+    if url_or_domain.startswith('/'):
+        return None
+    
+    try:
+        # Remove protocol if present
+        if url_or_domain.startswith(('http://', 'https://')):
+            parsed = urlparse(url_or_domain)
+            domain = parsed.netloc
+        else:
+            # Remove path if present (e.g., example.com/path -> example.com)
+            domain = url_or_domain.split('/')[0]
+        
+        # Remove port if present
+        domain = domain.split(':')[0].strip()
+        
+        # Check if domain is empty after processing
+        if not domain:
+            return None
+            
+        # Split domain parts
+        parts = domain.split('.')
+        
+        # Domain must have at least one dot to be valid (e.g., example.com)
+        # Single words without dots are not considered valid domains for this validation
+        if len(parts) < 2:
+            return domain  # Return as-is, let the validation handle it
+        
+        # If domain has more than 2 parts, try to get the main domain
+        # This handles cases like sub.example.com -> example.com
+        if len(parts) >= 2:
+            # Return last two parts as main domain (handles most cases)
+            return '.'.join(parts[-2:])
+        
+        return domain
+        
+    except Exception:
+        return None
+
+def is_domain_or_subdomain_allowed(input_domain, registered_domains):
+    """
+    Check if input_domain matches any registered domain or is a subdomain of registered domains
+    """
+    # Extract base domain from input
+    base_domain = extract_domain_from_url(input_domain)
+    
+    # If extraction failed, try direct comparison
+    if base_domain is None:
+        base_domain = input_domain
+    
+    for registered_domain in registered_domains:
+        # Direct match
+        if input_domain == registered_domain or base_domain == registered_domain:
+            return True
+            
+        # Check if input is subdomain of registered domain
+        if input_domain.endswith('.' + registered_domain):
+            return True
+            
+        # Check if base domain is subdomain of registered domain  
+        if base_domain != input_domain and base_domain.endswith('.' + registered_domain):
+            return True
+            
+        # Check if registered domain is subdomain of input (reverse check)
+        if registered_domain.endswith('.' + base_domain):
+            return True
+    
+    return False
+
+def domain_validation(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Get domain parameter
+        domain = request.args.get('domain')
+        
+        
+        # Domain parameter is required
+        if not domain:
+            return jsonify({"error": "Domain parameter is required"}), 400
+        
+        try:
+            # Get user information from JWT token
+            token = request.headers.get("Authorization")
+            decoded = get_jwt_data(token)
+            user_id = decoded['user_id']
+            
+            # Get user's registered domains from MongoDB
+            accounts_collection = mongo_db.get_accounts_collection()
+            account = accounts_collection.find_one(
+                {"_id": ObjectId(user_id)}, 
+                {"_id": 0, "myPlan.registered_domain": 1}
+            )
+            
+            if not account:
+                return jsonify({"error": "User account not found"}), 404
+                
+            # Check if user has registered domains
+            plan_info = account.get('myPlan', {})
+            registered_domains = plan_info.get('registered_domain', [])
+            
+            request.registered_domain = registered_domains
+
+            if not registered_domains:
+                return jsonify({"error": "No domains registered. Please register domains first using /register-domain"}), 403
+                
+            # Validate if the provided domain matches any registered domain or subdomain
+            if not is_domain_or_subdomain_allowed(domain, registered_domains):
+                return jsonify({"error": f"Domain '{domain}' is not registered or not a subdomain of registered domains. Registered domains: {registered_domains}"}), 403
+                
+        except Exception as e:
+            return jsonify({"error": f"Domain validation failed: {str(e)}"}), 500
+            
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 def jwt_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -52,10 +183,10 @@ def jwt_required(f):
             # Check if it's the new user_id based login or old username based
             if 'user_id' in decoded:
                 # Verify user_id still exists in database
-                from bson import ObjectId
                 accounts_collection = mongo_db.get_accounts_collection()
                 if not accounts_collection.find_one({"_id": ObjectId(decoded['user_id'])}):
                     return jsonify({"error": "Invalid user"}), 401
+                request.user_id = decoded['user_id']
                     
         except jwt.ExpiredSignatureError:
             return jsonify({"error": "Token expired"}), 401
@@ -70,7 +201,7 @@ def jwt_required(f):
 
 
 @app.route("/search", methods=["GET"])
-# @jwt_required
+@jwt_required
 def start_search():
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower() 
@@ -101,7 +232,7 @@ def start_search():
         
     return jsonify(response), response.get("status", 200)
 @app.route("/search/download", methods=["GET"])
-# @jwt_required
+@jwt_required
 def download_search():
     q = request.args.get("q", "")
     type_param = request.args.get('type', '').strip().lower()
@@ -860,6 +991,108 @@ def cek_jadwal():
     thread.start()
     return jsonify({"message": "Scheduled background job started with token"}), 200
 
+
+@app.route("/do-search", methods=["GET"])
+@jwt_required
+@domain_validation
+def start_do_search():
+    q = ""
+    type_param = request.args.get('type', '').strip().lower() 
+    page = int(request.args.get('page', 1))
+    size = request.args.get('size', 10)
+    if (size != "all"):
+        try:
+            size = int(size)
+        except ValueError:
+            return jsonify({"error": "Invalid size parameter"}), 400
+            
+    username = request.args.get('username')  
+    first_domain = request.registered_domain[0]
+    domain = request.args.get('domain', first_domain)
+    password = request.args.get('password')
+    
+    valid = request.args.get('valid', '').strip().lower()
+    data = {
+        "username": username,
+        "domain": domain,
+        "password": password
+    }
+
+    response = search_elastic(q, type_param, page, size, data, valid)
+    
+    # Handle the size limit response
+    if response.get("status") == 400:
+        return jsonify(response), 400
+        
+    return jsonify(response), response.get("status", 200)
+@app.route("/do-search/download", methods=["GET"])
+@jwt_required
+@domain_validation
+def download_do_search():
+    q = ""
+    type_param = request.args.get('type', '').strip().lower()
+    username = request.args.get('username')
+    first_domain = request.registered_domain[0]
+    domain = request.args.get('domain', first_domain)
+    password = request.args.get('password')
+    valid = request.args.get('valid', '').strip().lower()
+    logo_url = request.args.get('logo_url', '').strip().lower()
+
+    data = {
+        "username": username,
+        "domain": domain,
+        "password": password
+    }
+    try:
+        file_path = download_elastic(q, type_param, data, valid, logo_url)
+
+        return send_file(file_path, as_attachment=True)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    
+
+@app.route("/do-search/update/all", methods=["GET"])
+@jwt_required
+@domain_validation
+def start_task_update_with_do_search_all():
+    # Extract arguments from the query parameters
+    first_domain = request.registered_domain[0]
+    q = request.args.get('domain', first_domain)
+    type_param = request.args.get('type', '').strip().lower() 
+    if type_param == 'breach':
+        response = search_breach1(q)
+        subprocess.Popen(["python3", "breach1.py", q])
+        subprocess.Popen(["python3", "breach2.py", q, 'username'])
+        subprocess.Popen(["python3", "breach2.py", q, 'auto'])
+    elif type_param == 'stealer':
+        response = search_lcheck_stealer(q, "origin")
+        subprocess.Popen(["python3", "breach2.py", q, 'origin'])
+        subprocess.Popen(["python3", "stealer1_update_only.py", q])
+        subprocess.Popen(["python3", "stealer2.py", q])
+    else:
+        response = ResponseError("Please Specify Type",400)
+    return jsonify(response), response['status']
+
+@app.route("/do-search/update", methods=["GET"])
+@jwt_required
+@domain_validation
+def start_task_update_with_do_search():
+    # Extract arguments from the query parameters
+    first_domain = request.registered_domain[0]
+    q = request.args.get('domain', first_domain)
+    size = min(int(request.args.get('size', 10)), max_query) 
+    page = int(request.args.get('page', 1))
+    type_param = request.args.get('type', '').strip().lower() 
+    if type_param == 'breach':
+        subprocess.Popen(["python3", "breach1.py", q])
+        response = search_breach1(q)
+    elif type_param == 'stealer':
+        subprocess.Popen(["python3", "breach2.py", q, 'origin'])
+        subprocess.Popen(["python3", "stealer2.py", q])
+        response = search_stealer2(q, page)
+    else:
+        response = ResponseError("Please Specify Type",400)
+    return jsonify(response), response['status']
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5001)
