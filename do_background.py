@@ -920,7 +920,7 @@ def process_payment():
         user_id = decoded['user_id']
 
         data = request.json
-        PaymentId = data.get("paymentId")
+        PaymentId = data["paymentId"]
         
         required_fields = ["paymentId"]
         missing = [f for f in required_fields if f not in data or data[f] is None]
@@ -946,7 +946,8 @@ def process_payment():
                 "transaction.$[elem].payment": payment_data
             }
         }
-        if payment_data.Status==100 and current_payment.payment.Status==0:
+
+        if payment_data["Status"]==100 and current_payment["payment"]["Status"]==0:
             now = datetime.datetime.now()
             if current_payment['plan']=='monthly':
                 expired = now + relativedelta(months=1)
@@ -960,6 +961,8 @@ def process_payment():
                 "expired": expired,
                 "domain":current_payment['domain']
             }
+        else:
+            return jsonify({"error" : "Please Finish Your Payment"}, 403)
         
         array_filters=[{"elem.payment.Id": payment_data['Id']}]
         result = accounts_collection.update_one(
@@ -978,7 +981,7 @@ def process_payment():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/background-check")
+@app.route("/background-check", methods=["POST"])
 @jwt_required
 def cek_jadwal():
     token = request.headers.get("Authorization", None)
