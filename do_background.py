@@ -144,7 +144,7 @@ def domain_validation(f):
             accounts_collection = mongo_db.get_accounts_collection()
             account = accounts_collection.find_one(
                 {"_id": ObjectId(user_id)}, 
-                {"_id": 0, "myPlan.registered_domain": 1}
+                {"_id": 1, "myPlan": 1}
             )
             
             if not account:
@@ -152,17 +152,21 @@ def domain_validation(f):
                 
             # Check if user has registered domains
             plan_info = account.get('myPlan', {})
+            if plan_info ['expired']<datetime.datetime.now():
+                return jsonify({"error": "Your plan has expired"}), 403
             registered_domains = plan_info.get('registered_domain', [])
-            
             request.registered_domain = registered_domains
-
-            if not registered_domains:
-                return jsonify({"error": "No domains registered. Please register domains first using /register-domain"}), 403
-                
-            # Validate if the provided domain matches any registered domain or subdomain
-            if not is_domain_or_subdomain_allowed(domain, registered_domains):
-                return jsonify({"error": f"Domain '{domain}' is not registered or not a subdomain of registered domains. Registered domains: {registered_domains}"}), 403
-                
+            if plan_info['domain'] != 'unlimited':
+                if not registered_domains:
+                    return jsonify({"error": "No domains registered. Please register domains first using /register-domain"}), 403
+                    
+                # Validate if the provided domain matches any registered domain or subdomain
+                if not is_domain_or_subdomain_allowed(domain, registered_domains):
+                    return jsonify({"error": f"Domain '{domain}' is not registered or not a subdomain of registered domains. Registered domains: {registered_domains}"}), 403
+            else:
+                if len(registered_domains) == 0:
+                    request.registered_domain.append('unlimited')
+            
         except Exception as e:
             return jsonify({"error": f"Domain validation failed: {str(e)}"}), 500
             
@@ -853,9 +857,10 @@ def register_domain():
             raise Exception("User does not have an active plan")
         if plan_info ['expired']<datetime.datetime.now():
             return jsonify({"error": "Your plan has expired"}), 403
-        domain_count = int(plan_info['domain'])
-        if len(selected_domains)>domain_count:
-            return jsonify({"error": "You have exceeded the number of domains allowed in your plan"}), 403
+        if plan_info['domain'] != 'unlimited':
+            domain_count = int(plan_info['domain'])
+            if len(selected_domains)>domain_count:
+                return jsonify({"error": "You have exceeded the number of domains allowed in your plan"}), 403
         set_data = {
             "$set": {
                 "myPlan.registered_domain": selected_domains
@@ -872,6 +877,35 @@ def register_domain():
             }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/my-domain',methods=['GET'])
+@jwt_required
+def get_my_domain():
+    try:
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        filter = {"_id": ObjectId(user_id)}
+        account = accounts_collection.find_one(
+            filter, 
+            {"_id": 0, "myPlan":1}
+        )
+        plan_info  = account.get('myPlan', None)
+        if plan_info is None:
+            raise Exception("User does not have an active plan")
+        if plan_info ['expired']<datetime.datetime.now():
+            return jsonify({"error": "Your plan has expired"}), 403
+        
+        my_domain = plan_info['registered_domain']
+
+        return jsonify({
+            "data": my_domain,
+            "message": "Success Get Domain"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/get-payment/<id>',methods=['GET'])
 @jwt_required
@@ -1010,8 +1044,11 @@ def start_do_search():
             return jsonify({"error": "Invalid size parameter"}), 400
             
     username = request.args.get('username')  
-    first_domain = request.registered_domain[0]
-    domain = request.args.get('domain', first_domain)
+    # Handle both unlimited and limited domain plans
+    if hasattr(request, 'registered_domain') and request.registered_domain:
+        first_domain = request.registered_domain[0]
+        domain = request.args.get('domain', first_domain)
+        
     password = request.args.get('password')
     
     valid = request.args.get('valid', '').strip().lower()
@@ -1035,8 +1072,10 @@ def download_do_search():
     q = ""
     type_param = request.args.get('type', '').strip().lower()
     username = request.args.get('username')
-    first_domain = request.registered_domain[0]
-    domain = request.args.get('domain', first_domain)
+    # Handle both unlimited and limited domain plans
+    if hasattr(request, 'registered_domain') and request.registered_domain:
+        first_domain = request.registered_domain[0]
+        domain = request.args.get('domain', first_domain)    
     password = request.args.get('password')
     valid = request.args.get('valid', '').strip().lower()
     logo_url = request.args.get('logo_url', '').strip().lower()
@@ -1059,8 +1098,10 @@ def download_do_search():
 @domain_validation
 def start_task_update_with_do_search_all():
     # Extract arguments from the query parameters
-    first_domain = request.registered_domain[0]
-    q = request.args.get('domain', first_domain)
+    # Handle both unlimited and limited domain plans
+    if hasattr(request, 'registered_domain') and request.registered_domain:
+        first_domain = request.registered_domain[0]
+        q = request.args.get('domain', first_domain)    
     type_param = request.args.get('type', '').strip().lower() 
     if type_param == 'breach':
         response = search_breach1(q)
@@ -1081,8 +1122,10 @@ def start_task_update_with_do_search_all():
 @domain_validation
 def start_task_update_with_do_search():
     # Extract arguments from the query parameters
-    first_domain = request.registered_domain[0]
-    q = request.args.get('domain', first_domain)
+    # Handle both unlimited and limited domain plans
+    if hasattr(request, 'registered_domain') and request.registered_domain:
+        first_domain = request.registered_domain[0]
+        q = request.args.get('domain', first_domain)
     size = min(int(request.args.get('size', 10)), max_query) 
     page = int(request.args.get('page', 1))
     type_param = request.args.get('type', '').strip().lower() 
