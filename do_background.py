@@ -634,7 +634,6 @@ def new_login():
 
 
 @app.route('/pricing',methods=['GET'])
-@jwt_required
 def get_pricing():
     try:
         pricing_collection = mongo_db.get_pricings_collection()
