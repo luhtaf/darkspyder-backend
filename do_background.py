@@ -128,48 +128,78 @@ def domain_validation(f):
     def decorated_function(*args, **kwargs):
         # Get domain parameter
         domain = request.args.get('domain')
-        
-        
-        # Domain parameter is required
-        if not domain:
-            return jsonify({"error": "Domain parameter is required"}), 400
-        
-        try:
-            # Get user information from JWT token
-            token = request.headers.get("Authorization")
-            decoded = get_jwt_data(token)
-            user_id = decoded['user_id']
-            
-            # Get user's registered domains from MongoDB
-            accounts_collection = mongo_db.get_accounts_collection()
-            account = accounts_collection.find_one(
-                {"_id": ObjectId(user_id)}, 
-                {"_id": 1, "myPlan": 1}
-            )
-            
-            if not account:
-                return jsonify({"error": "User account not found"}), 404
+        type_param = request.args.get('type', '').strip().lower()
+        if type_param == 'stealer':
+            try:
+                # Get user information from JWT token
+                token = request.headers.get("Authorization")
+                decoded = get_jwt_data(token)
+                user_id = decoded['user_id']
                 
-            # Check if user has registered domains
-            plan_info = account.get('myPlan', {})
-            if plan_info ['expired']<datetime.datetime.now():
-                return jsonify({"error": "Your plan has expired"}), 403
-            registered_domains = plan_info.get('registered_domain', [])
-            request.registered_domain = registered_domains
-            if plan_info['domain'] != 'unlimited':
-                if not registered_domains:
-                    return jsonify({"error": "No domains registered. Please register domains first using /register-domain"}), 403
+                # Get user's registered domains from MongoDB
+                accounts_collection = mongo_db.get_accounts_collection()
+                account = accounts_collection.find_one(
+                    {"_id": ObjectId(user_id)}, 
+                    {"_id": 1, "myPlan": 1}
+                )
+                
+                if not account:
+                    return jsonify({"error": "User account not found"}), 404
                     
-                # Validate if the provided domain matches any registered domain or subdomain
-                if not is_domain_or_subdomain_allowed(domain, registered_domains):
-                    return jsonify({"error": f"Domain '{domain}' is not registered or not a subdomain of registered domains. Registered domains: {registered_domains}"}), 403
-            else:
-                if len(registered_domains) == 0:
-                    request.registered_domain.append('unlimited')
-            
-        except Exception as e:
-            return jsonify({"error": f"Domain validation failed: {str(e)}"}), 500
-            
+                # Check if user has registered domains
+                plan_info = account.get('myPlan', {})
+                if plan_info ['expired']<datetime.datetime.now() and plan_info['expired'] != 'unlimited':
+                    return jsonify({"error": "Your plan has expired"}), 403
+                registered_domains = plan_info.get('registered_domain', [])
+                request.registered_domain = registered_domains
+                if plan_info['domain'] != 'unlimited':
+                    q = request.args.get('q', "")
+                    if q!="":
+                        return jsonify({"error": "You can only search for domains registered in your plan"}), 403
+                    if not registered_domains:
+                        return jsonify({"error": "No domains registered. Please register domains first using /register-domain"}), 403
+                        
+                    # Validate if the provided domain matches any registered domain or subdomain
+                    if not is_domain_or_subdomain_allowed(domain, registered_domains):
+                        return jsonify({"error": f"Domain '{domain}' is not registered or not a subdomain of registered domains. Registered domains: {registered_domains}"}), 403
+                else:
+                    if len(registered_domains) == 0:
+                        request.registered_domain.append('unlimited')
+                
+            except Exception as e:
+                return jsonify({"error": f"Domain validation failed: {str(e)}"}), 500
+        elif type_param == 'breach':
+            try:
+                token = request.headers.get("Authorization")
+                decoded = get_jwt_data(token)
+                user_id = decoded['user_id']
+                accounts_collection = mongo_db.get_accounts_collection()
+                account = accounts_collection.find_one(
+                    {"_id": ObjectId(user_id)}, 
+                    {"_id": 1, "myPlan": 1}
+                )
+                plan_info = account.get('myPlan', {})
+                if plan_info ['expired']<datetime.datetime.now() and plan_info['expired'] != 'unlimited':
+                    return jsonify({"error": "Your plan has expired"}), 403
+                breach = plan_info.get('breach', 0)
+                if breach != 'unlimited':
+                    breach = int(breach)
+                current_breach = int(plan_info.get('current_breach', 0))
+                if breach != 'unlimited' and (current_breach >= breach):
+                    return jsonify({"error": "You have exceeded the number of breach allowed in your plan"}), 403
+                else:
+                    set_data = {
+                        "$set": {
+                            "myPlan.current_breach": str(current_breach + 1)
+                            }
+                    }
+                    filter = {"_id": ObjectId(user_id)}
+                    accounts_collection.update_one(
+                        filter,
+                        set_data
+                    )
+            except Exception as e:
+                return jsonify({"error": f"Breach validation failed: {str(e)}"}), 500
         return f(*args, **kwargs)
     return decorated_function
 
@@ -905,6 +935,37 @@ def get_my_domain():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/my-breach',methods=['GET'])
+@jwt_required
+def get_my_breach():
+    try:
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        accounts_collection = mongo_db.get_accounts_collection()
+        filter = {"_id": ObjectId(user_id)}
+        account = accounts_collection.find_one(
+            filter, 
+            {"_id": 0, "myPlan":1}
+        )
+        plan_info  = account.get('myPlan', None)
+        if plan_info is None:
+            raise Exception("User does not have an active plan")
+        if plan_info ['expired']<datetime.datetime.now():
+            return jsonify({"error": "Your plan has expired"}), 403
+        
+        my_breach = plan_info['breach']
+        my_current_breach = plan_info['current_breach']
+        list = {
+            "breach": my_breach,
+            "current_breach": my_current_breach
+        }
+        return jsonify({
+            "data": list,
+            "message": "Success Get Breach"
+            }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/get-payment/<id>',methods=['GET'])
 @jwt_required
@@ -988,11 +1049,14 @@ def process_payment():
                 expired = now + relativedelta(months=3)
             elif current_payment['plan']=='yearly':
                 expired = now + relativedelta(years=1)
+
             
             set_data['$set']['myPlan']={
                 "plan":current_payment['id'],
                 "expired": expired,
-                "domain":current_payment['domain']
+                "domain":current_payment['domain'],
+                "breach":current_payment['breach'],
+                "current_breach": "0"
             }
         else:
             return jsonify({"error" : "Please Finish Your Payment"}, 403)
@@ -1032,7 +1096,7 @@ def cek_jadwal():
 @jwt_required
 @domain_validation
 def start_do_search():
-    q = ""
+    q = request.args.get('q', "")
     type_param = request.args.get('type', '').strip().lower() 
     page = int(request.args.get('page', 1))
     size = request.args.get('size', 10)
@@ -1068,7 +1132,7 @@ def start_do_search():
 @jwt_required
 @domain_validation
 def download_do_search():
-    q = ""
+    q = request.args.get('q', "")
     type_param = request.args.get('type', '').strip().lower()
     username = request.args.get('username')
     # Handle both unlimited and limited domain plans
@@ -1100,7 +1164,8 @@ def start_task_update_with_do_search_all():
     # Handle both unlimited and limited domain plans
     if hasattr(request, 'registered_domain') and request.registered_domain:
         first_domain = request.registered_domain[0]
-        q = request.args.get('domain', first_domain)    
+        # q = request.args.get('domain', first_domain)
+        q = request.args.get('q', "")
     type_param = request.args.get('type', '').strip().lower() 
     if type_param == 'breach':
         response = search_breach1(q)
@@ -1124,7 +1189,8 @@ def start_task_update_with_do_search():
     # Handle both unlimited and limited domain plans
     if hasattr(request, 'registered_domain') and request.registered_domain:
         first_domain = request.registered_domain[0]
-        q = request.args.get('domain', first_domain)
+        # q = request.args.get('domain', first_domain)
+        q = request.args.get('q', "")
     size = min(int(request.args.get('size', 10)), max_query) 
     page = int(request.args.get('page', 1))
     type_param = request.args.get('type', '').strip().lower() 
