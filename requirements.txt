@@ -8,3 +8,6 @@ telethon
 pymongo
 pyotp
 python-dateutil
+requests
+leakcheck
+bs4

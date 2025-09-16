@@ -152,6 +152,7 @@ def domain_validation(f):
                     return jsonify({"error": "Your plan has expired"}), 403
                 registered_domains = plan_info.get('registered_domain', [])
                 request.registered_domain = registered_domains
+                request.plan_info = plan_info
                 if plan_info['domain'] != 'unlimited':
                     q = request.args.get('q', "")
                     if q!="":
@@ -165,7 +166,6 @@ def domain_validation(f):
                 else:
                     if len(registered_domains) == 0:
                         request.registered_domain.append('unlimited')
-                
             except Exception as e:
                 return jsonify({"error": f"Domain validation failed: {str(e)}"}), 500
         elif type_param == 'breach':
@@ -907,6 +907,48 @@ def register_domain():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/register-breach-domain',methods=['POST'])
+@jwt_required
+def register_breach_domain():
+    try:
+        data = request.json
+        selected_domains = data.get('selected_domains')
+        if not isinstance(selected_domains, list) or not all(isinstance(item, str) for item in selected_domains):
+            raise Exception("selected_domains must be an array of strings")
+        
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        
+        accounts_collection = mongo_db.get_accounts_collection()
+        filter_user = {"_id": ObjectId(user_id)}
+        
+        account = accounts_collection.find_one(
+            filter_user, 
+            {"_id": 0, "myPlan": 1}
+        )
+        
+        plan_info = account.get('myPlan', None)
+        if plan_info is None:
+            raise Exception("User does not have an active plan")
+        
+        if plan_info.get('expired') < datetime.datetime.now() and plan_info.get('expired') != 'unlimited':
+            return jsonify({"error": "Your plan has expired"}), 403
+        
+        if plan_info.get('domain') != 'unlimited':
+            return jsonify({"error": "This feature is only available for unlimited plan users"}), 403
+
+        set_data = {
+            "$set": {
+                "myPlan.registered_breach_domain": selected_domains
+            }
+        }
+        accounts_collection.update_one(filter_user, set_data)
+
+        return jsonify({"message": "Breach domains registered successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/my-domain',methods=['GET'])
 @jwt_required
 def get_my_domain():
@@ -1108,10 +1150,19 @@ def start_do_search():
             
     username = request.args.get('username')  
     # Handle both unlimited and limited domain plans
-    if hasattr(request, 'registered_domain') and request.registered_domain:
-        first_domain = request.registered_domain[0]
-        domain = request.args.get('domain', first_domain)
-        
+    if hasattr(request, 'plan_info') and request.plan_info:
+        plan_info = request.plan_info
+        if plan_info['domain'] != 'unlimited':
+            registered_domains = plan_info.get('registered_domain', [])
+            if len(registered_domains) == 0:
+                return jsonify({"error": "No domains registered. Please register domains first using /register-domain"}), 403
+            first_domain = registered_domains[0]
+            domain = request.args.get('domain', first_domain)
+        else:
+            domain = request.args.get('domain', None)
+    else:
+        domain = request.args.get('domain', None)
+
     password = request.args.get('password')
     
     valid = request.args.get('valid', '').strip().lower()
@@ -1207,5 +1258,3 @@ def start_task_update_with_do_search():
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5001)
-
-
