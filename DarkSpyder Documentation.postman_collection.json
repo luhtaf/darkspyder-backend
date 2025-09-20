@@ -1,0 +1,1858 @@
+{
+	"info": {
+		"_postman_id": "786aaaef-120c-4fe1-b9dc-e739bfef612b",
+		"name": "DarkSpyder Documentation",
+		"description": "This is documentation to access darkspyder API, to access stealer or breach\n\n<img src=\"https://content.pstmn.io/51b0fab8-4bfb-4655-879b-b06bca0fe387/RmxvdyBEaWFncmFtLnBuZw==\" alt=\"\">",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "8759098",
+		"_collection_link": "https://web.postman.co/workspace/darkspyder~8473a095-8db8-4f0f-9383-41afe40e91fa/collection/8759098-786aaaef-120c-4fe1-b9dc-e739bfef612b?action=share&source=collection_link&creator=8759098"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\":\"ui2kjs902!\",\r\n    \"password\":\"ru890KLios322!\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"login"
+							]
+						},
+						"description": "Gets information about the authenticated user."
+					},
+					"response": [
+						{
+							"name": "Success Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"yourusername\",\r\n    \"password\":\"yourpassword\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"login"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Server",
+									"value": "Werkzeug/3.1.3 Python/3.12.3",
+									"type": "text"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 11 Dec 2024 18:26:10 GMT",
+									"type": "text"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								},
+								{
+									"key": "Content-Length",
+									"value": "145",
+									"type": "text"
+								},
+								{
+									"key": "Connection",
+									"value": "close",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidWkya2pzOTAyIiwiZXhwIjoxNzMzOTQ1MTcwfQ.M7dpPtzQrFvI1zuZlbrkLLf4f-mM84Q1NIDGbAVw14A\"\n}"
+						},
+						{
+							"name": "Failed Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"yourusername\",\r\n    \"password\":\"yourpassword\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"login"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Server",
+									"value": "Werkzeug/3.1.3 Python/3.12.3",
+									"type": "text"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 11 Dec 2024 18:27:52 GMT",
+									"type": "text"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								},
+								{
+									"key": "Content-Length",
+									"value": "33",
+									"type": "text"
+								},
+								{
+									"key": "Connection",
+									"value": "close",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Invalid credentials\"\n}"
+						}
+					]
+				},
+				{
+					"name": "New Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"access_id\":\"nIGUWEvWQi70B8XWzm5q5Z\",\r\n    \"totp\":\"103740\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/new-login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"new-login"
+							]
+						},
+						"description": "Gets information about the authenticated user."
+					},
+					"response": [
+						{
+							"name": "Success Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"yourusername\",\r\n    \"password\":\"yourpassword\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"login"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Server",
+									"value": "Werkzeug/3.1.3 Python/3.12.3",
+									"type": "text"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 11 Dec 2024 18:26:10 GMT",
+									"type": "text"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								},
+								{
+									"key": "Content-Length",
+									"value": "145",
+									"type": "text"
+								},
+								{
+									"key": "Connection",
+									"value": "close",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidWkya2pzOTAyIiwiZXhwIjoxNzMzOTQ1MTcwfQ.M7dpPtzQrFvI1zuZlbrkLLf4f-mM84Q1NIDGbAVw14A\"\n}"
+						},
+						{
+							"name": "Failed Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"yourusername\",\r\n    \"password\":\"yourpassword\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"login"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Server",
+									"value": "Werkzeug/3.1.3 Python/3.12.3",
+									"type": "text"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 11 Dec 2024 18:27:52 GMT",
+									"type": "text"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								},
+								{
+									"key": "Content-Length",
+									"value": "33",
+									"type": "text"
+								},
+								{
+									"key": "Connection",
+									"value": "close",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Invalid credentials\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"register"
+							]
+						},
+						"description": "Gets information about the authenticated user."
+					},
+					"response": [
+						{
+							"name": "Success Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"yourusername\",\r\n    \"password\":\"yourpassword\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"login"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Server",
+									"value": "Werkzeug/3.1.3 Python/3.12.3",
+									"type": "text"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 11 Dec 2024 18:26:10 GMT",
+									"type": "text"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								},
+								{
+									"key": "Content-Length",
+									"value": "145",
+									"type": "text"
+								},
+								{
+									"key": "Connection",
+									"value": "close",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidWkya2pzOTAyIiwiZXhwIjoxNzMzOTQ1MTcwfQ.M7dpPtzQrFvI1zuZlbrkLLf4f-mM84Q1NIDGbAVw14A\"\n}"
+						},
+						{
+							"name": "Failed Login",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"username\":\"yourusername\",\r\n    \"password\":\"yourpassword\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/login",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"login"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Server",
+									"value": "Werkzeug/3.1.3 Python/3.12.3",
+									"type": "text"
+								},
+								{
+									"key": "Date",
+									"value": "Wed, 11 Dec 2024 18:27:52 GMT",
+									"type": "text"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								},
+								{
+									"key": "Content-Length",
+									"value": "33",
+									"type": "text"
+								},
+								{
+									"key": "Connection",
+									"value": "close",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"Invalid credentials\"\n}"
+						}
+					]
+				}
+			],
+			"description": "The endpoints Handles user authentication and returns a token for accessing protected resources.\n\nTo access this endpoint, ensure the following headers are **included**:\n\n| **Header** | Value |\n| --- | --- |\n| Content-Type | application/json |\n\nThe required body for this endpoint is\n\n``` json\n{\n      \"username\":your_username,\n      \"password\":your_password\n}\n\n ```\n\nfor registration no body is needed, and for new-login, body needed is\n\n``` json\n{\n    \"access_id\":\"access_id\",\n    \"totp\":\"totp\"\n}\n\n ```",
+			"auth": {
+				"type": "noauth"
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Protected Endpoint",
+			"item": [],
+			"description": "To access this **`Protected Endpoint`**, a **Bearer Token** is required, as detailed below:\n\n| **Header** | **Example Value** |\n| --- | --- |\n| Authorization | Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidWkya2pzOTAyIiwiZXhwIjoxNzMzOTQ1MTcwfQ.M7dpPtzQrFvI1zuZlbrkLLf4f-mM84Q1NIDGbAVw14A |"
+		},
+		{
+			"name": "Quick Search",
+			"item": [
+				{
+					"name": "Quick Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/search?q=xignature.co.id&type=stealer&page=1&size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "xignature.co.id"
+								},
+								{
+									"key": "type",
+									"value": "stealer"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Quick Search Limit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/do-search?q=xignature.co.id&type=stealer&page=1&size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"do-search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "xignature.co.id"
+								},
+								{
+									"key": "type",
+									"value": "stealer"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download Quick Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/search/download?q=xignature.co.id&type=stealer&page=1&size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search",
+								"download"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "xignature.co.id"
+								},
+								{
+									"key": "type",
+									"value": "stealer"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "logo_url",
+									"value": "abc.com",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download Quick Search Limit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/do-search/download?q=domain2.com&type=stealer&page=1&size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"do-search",
+								"download"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "domain2.com"
+								},
+								{
+									"key": "type",
+									"value": "stealer"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "logo_url",
+									"value": "abc.com",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "This `/search` endpoint enables you to retrieve data from our fastest database. You can query either for 'stealer' or 'breach' data.\n\nThis Endpoint is Protected, please check **`Protected Endpoint`** Folder\n\n## Param\n\n- **q** : keyword to search\n    \n- **type** : type to search (either \"**stealer**\" or \"**breach**\")\n    - only if type is **stealer** and **q** is null**:**\n        - **username**\n            \n        - **domain**\n            \n        - **password**\n            \n- **page** : default page is 1\n    \n- **size** : default size is 10 (max **1000)**\n    \n- **valid** : can be \"true\", \"false\" or you can make it null\n    \n\nNote\n\nin Download, if logo_url is not specify, it will produce logo darkspyder instead\n\n<img src=\"https://content.pstmn.io/0ea350d7-65ad-4e81-b979-cc94fcbe7380/UXVpY2sgU2VhcmNoIEZsb3cucG5n\" alt=\"\n<br>\n<br>\n<br>\">",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Update DB",
+			"item": [
+				{
+					"name": "Update DB",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/update?q=xignature.co.id&type=breach",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"update"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "xignature.co.id"
+								},
+								{
+									"key": "type",
+									"value": "breach"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "this endpoint allow you to enrich the fastest database from deep database, after hit this endpoint you can enjoy more data when you hit **`Quick Search`** endpoint\n\nThis is endpoint is Protected, please check **`Protected Endpoint`** Folder\n\n## Param\n\n- **q** : keyword to enrich\n    \n- **type** : type to search (either \"**stealer**\", \"**breach**\", or \"**all**\")\n    \n\n<img src=\"https://content.pstmn.io/96085ed1-2a16-46f7-8844-fa136b783780/VXBkYXRlIERCIEZsb3cucG5n\" alt=\"\">",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Deep Search",
+			"item": [
+				{
+					"name": "Deep Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/search/update?q=Harris Munahar&type=breach",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search",
+								"update"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Harris Munahar"
+								},
+								{
+									"key": "type",
+									"value": "breach"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deep Search Limit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/do-search/update?q=domain1.com&type=breach",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"do-search",
+								"update"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "domain1.com"
+								},
+								{
+									"key": "type",
+									"value": "breach"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "this endpoint allow you to enrich the database while you enjoy the data from deep database.\n\nThis endpoint is Protected, please check **`Protected Endpoint`** Folder\n\n## Param\n\n- **q** : keyword to search\n    \n- **type** : type to search (either \"**stealer**\" or \"**breach**\")\n    \n    - only type is **stealer:**\n        \n        - page (default 1)\n            \n\n<img src=\"https://content.pstmn.io/099e2f56-980c-4d18-99f4-ab0c3f8f3bc2/RGVlcCBTZWFyY2ggRmxvdy5wbmc=\">",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidWkya2pzOTAyIiwiZXhwIjoxNzM1MDI5Mzc1fQ.RIn80EB9DMjC4OEp7vIiH26ZmVuNzDCnEkS_u4wcRsY",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "CheckALL",
+			"item": [
+				{
+					"name": "CheckEndData",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			],
+			"description": "this folder is like Deepsearch, but will automaticly trigger UpdateDB All\n\nThis endpoint is Protected, please check **`Protected Endpoint`** Folder"
+		},
+		{
+			"name": "DB Info",
+			"item": [
+				{
+					"name": "Summary DB Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/db-info",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"db-info"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Detail DB Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/db-info-all",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"db-info-all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Detail DB Stealer Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/db-info-stealer",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"db-info-stealer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Summary DB",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/db-summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"db-summary"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "TOP 10 Password",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/top-10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"top-10"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "This Folder contain how to get DB Info of how many total data that we have\n\nThis endpoint is Protected, please check **`Protected Endpoint`** Folder",
+			"auth": {
+				"type": "bearer"
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Mark As Valid",
+			"item": [
+				{
+					"name": "Single Data",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"valid\": true\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/mark-as-valid/<id>",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"mark-as-valid",
+								"<id>"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Many Data",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id1\" : true,\r\n    \"id2\" : true,\r\n    \"id3\" :false\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/mark-as-valid",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"mark-as-valid"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "to mark whether data is valid or not\n\nThis endpoint is Protected, please check **`Protected Endpoint`** Folder\n\nin single data just add id and send body\n\nvalid = true or false in boolean\n\nin many data, just send body id with validity like request example, make sure validity in boolean",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjoidWkya2pzOTAyIiwiZXhwIjoxNzQyNTY0OTkxfQ.aRLIlxLp-ABbH1ZW_AOeDYGvkXlLQR3W8mlqpqasp5o",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"packages": {},
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Setup",
+			"item": [
+				{
+					"name": "Create First Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"admin@example.com\",\r\n    \"username\": \"admin_user\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/setup/create-first-admin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"setup",
+								"create-first-admin"
+							]
+						},
+						"description": "Membuat admin pertama (tidak memerlukan authentication). Email wajib, username opsional."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Existing Users",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/setup/update-existing-users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"setup",
+								"update-existing-users"
+							]
+						},
+						"description": "Menambahkan field baru (is_admin, is_active, email, username) ke user yang sudah ada."
+					},
+					"response": []
+				}
+			],
+			"description": "Setup endpoints untuk inisialisasi sistem dan update user yang sudah ada."
+		},
+		{
+			"name": "User Management (Admin)",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users?page=1&size=10&search=user@example.com",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								},
+								{
+									"key": "search",
+									"value": "user@example.com"
+								}
+							]
+						},
+						"description": "Mendapatkan daftar semua user dengan pagination dan search."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Mendapatkan detail user berdasarkan ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Create New User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"newuser@example.com\",\r\n    \"username\": \"newuser123\",\r\n    \"is_admin\": false,\r\n    \"is_active\": true\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users"
+							]
+						},
+						"description": "Membuat user baru (admin only). Email wajib, username opsional."
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"updated@example.com\",\r\n    \"username\": \"updateduser\",\r\n    \"is_admin\": false,\r\n    \"is_active\": true\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Mengupdate informasi user."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User (Soft Delete)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}"
+							]
+						},
+						"description": "Menghapus user (soft delete dengan mengset is_active = false)."
+					},
+					"response": []
+				},
+				{
+					"name": "Make User Admin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}/make-admin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}",
+								"make-admin"
+							]
+						},
+						"description": "Memberikan hak admin kepada user."
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Admin Privileges",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}/remove-admin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}",
+								"remove-admin"
+							]
+						},
+						"description": "Menghapus hak admin dari user."
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints untuk admin. Semua endpoint memerlukan admin authentication.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{token}}",
+						"type": "string"
+					}
+				]
+			}
+		},
+		{
+			"name": "Package Management (Admin)",
+			"item": [
+				{
+					"name": "Assign Package to User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"idPricing\": \"64f1a2b3c4d5e6f7g8h9i0j1\",\r\n    \"plan\": \"monthly\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}/assign-package",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}",
+								"assign-package"
+							]
+						},
+						"description": "Menugaskan paket tertentu kepada user."
+					},
+					"response": []
+				},
+				{
+					"name": "Extend User Package",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"extend_months\": 3\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}/extend-package",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}",
+								"extend-package"
+							]
+						},
+						"description": "Memperpanjang paket user."
+					},
+					"response": []
+				},
+				{
+					"name": "Remove User Package",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/users/{{user_id}}/remove-package",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"users",
+								"{{user_id}}",
+								"remove-package"
+							]
+						},
+						"description": "Menghapus paket dari user."
+					},
+					"response": []
+				}
+			],
+			"description": "Package management endpoints untuk admin. Semua endpoint memerlukan admin authentication.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{token}}",
+						"type": "string"
+					}
+				]
+			}
+		},
+		{
+			"name": "Payment",
+			"item": [
+				{
+					"name": "Pricing List",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/pricing",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"pricing"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Asset List",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"idPricing\":\"6866108da3a6824bb869e488\",\r\n    \"plan\":\"monthly\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/asset-list",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"asset-list"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Invoice",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"idPricing\":\"6866108da3a6824bb869e488\",\r\n    \"plan\":\"monthly\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/create-invoice",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"create-invoice"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Payment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"invoiceId\":\"GqkhzgsLSnwQvK\",\r\n    \"assetCode\":\"usdt\",\r\n    \"blockchainCode\":\"arb\",\r\n    \"isEvm\":true\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/create-payment",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"create-payment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "My Payment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/my-payment",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-payment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "My Plan",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/my-plan",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-plan"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get One Payment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/get-payment/xhGpiEN9Z6xVPb",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"get-payment",
+								"xhGpiEN9Z6xVPb"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "invoice",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Process Payment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"paymentId\":\"1E0TULx1lUo2FHuo\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/process-payment",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"process-payment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Background Check",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"paymentId\":\"1E0TULx1lUo2FHuo\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/background-check",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"background-check"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "invoice",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Domain",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"selected_domains\":[\r\n        \"domain1.com\"\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/register-domain",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"register-domain"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Breach Domain",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"selected_domains\":[\r\n        \"domain1.com\"\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/register-breach-domain",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"register-breach-domain"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "My Domain",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/my-domain",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-domain"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "My Breach Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/my-breach",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"my-breach"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Alurnya adalah\n\n1. user cek `Pricing List` untuk mendapatkan plan apa saja yang bisa diambil\n2. user cek `Asset List` untuk melihat koin dan blockchain apa yang tersedia pada nominal tersebut\n3. user membuat invoice melalui `Create Invoice`\n4. user membuat payment melalui `Create Payment` untuk membuat instruksi bayar\n5. user mengecek apakah pembayaran sudah terbayar melalui `Process Payment`hanya endpoint ini adalah endpoint dasar yang dapat melakukan pengecekan bayar dan update ke sistem apabila sudah bayar, apabila endpoint ini tidak di hit, sistem kita tidak bisa secara otomatis mengetahui apakah pembayaran berhasil, saran dapat di hit menggunakan cron\n    \n6. Apabila pembayaran diterima, user mendaftarkan domain yang akan di monitor melalui `Register Domain`.\n    \n\nETC\n\n`My Payment` untuk melihat semua daftar transaksi user saat ini\n\n`Get One Payment` untuk melihat by id sebuah transaksi\n\n`My Plan` untuk melihat plan yang sedang aktif dari user saat ini\n\n`Background Check` untuk melakukan pengecekan pada edpoint `Process Payment` Secara Berkala setiap 1 menit, hingga 10 menit sejak di HIT"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNjg5MjBjMGFlOTAwZGE0ZTU4MWMwM2YwIiwiZXhwIjoxNzU4MDM4NjQ4fQ.to20ow7xMBSJlGufWS9jMawiaamRIqKnhzdiYMnDgwQ",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://farming-simulator.pstmn.io"
+		},
+		{
+			"key": "user_id",
+			"value": "64f1a2b3c4d5e6f7g8h9i0j1"
+		}
+	]
+}

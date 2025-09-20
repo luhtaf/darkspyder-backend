@@ -10,7 +10,7 @@ from stealer2 import search_stealer2
 from trait import ResponseError
 from parsing_db_to_json import parse_html_to_json, save_to_json
 from werkzeug.utils import secure_filename
-from init_mongo import mongo_db
+from init_mongo import mongo_db, MONGO_DB_NAME
 from init_payment import payment
 from bson import ObjectId, json_util
 from handle_totp import generate_url_otp, verify_totp, generate_secret
@@ -570,6 +570,13 @@ def serve_logo():
 @app.route('/register', methods=['POST'])
 def register():
     try:
+        data = request.json or {}
+        email = data.get('email', '').strip()
+        username = data.get('username', '').strip()
+        
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+        
         # Generate access ID (18-22 characters, alphanumeric)
         length = random.randint(18, 22)
         characters = string.ascii_letters + string.digits
@@ -580,27 +587,51 @@ def register():
         while accounts_collection.find_one({"access_id": access_id}):
             access_id = ''.join(random.choice(characters) for _ in range(length))
         
+        # Check if email already exists
+        if accounts_collection.find_one({"email": email}):
+            return jsonify({"error": "Email already exists"}), 400
+        
+        # Check if username already exists (if provided)
+        if username:
+            if accounts_collection.find_one({"username": username}):
+                return jsonify({"error": "Username already exists"}), 400
+        
         secret = generate_secret()
+        
         # Save to MongoDB
         account_data = {
             "access_id": access_id,
+            "email": email,
             "created_at": datetime.datetime.now(),
             "last_login": None,
-            "login_history": [],  # Initialize empty login history array,
-            "secret":secret,
-            "using_totp": True
+            "login_history": [],  # Initialize empty login history array
+            "secret": secret,
+            "using_totp": True,
+            "is_admin": False,
+            "is_active": True
         }
+        
+        # Add optional username if provided
+        if username:
+            account_data["username"] = username
         
         result = accounts_collection.insert_one(account_data)
         user_id = str(result.inserted_id)
-        provision_url, secret = generate_url_otp(secret=secret,username=user_id)
+        provision_url, secret = generate_url_otp(secret=secret, username=user_id)
         
         if result.inserted_id:
-            return jsonify({
+            response_data = {
                 "access_id": access_id,
+                "email": email,
                 "provision_url": provision_url,
                 "message": "Account registered successfully"
-            }), 200
+            }
+            
+            # Include username in response if provided
+            if username:
+                response_data["username"] = username
+                
+            return jsonify(response_data), 200
         else:
             return jsonify({"error": "Failed to register account"}), 500
             
@@ -648,11 +679,22 @@ def new_login():
             }
         )
         
-        # Generate JWT token with user_id (MongoDB _id)
-        token = jwt.encode({
+        # Prepare JWT payload
+        jwt_payload = {
             "user_id": str(account["_id"]),  # Convert ObjectId to string
             "exp": datetime.datetime.now() + datetime.timedelta(hours=1)
-        }, JWT_SECRET_KEY, algorithm="HS256")
+        }
+        
+        # Add username to JWT if exists
+        if account.get("username"):
+            jwt_payload["username"] = account["username"]
+        
+        # Add is_admin to JWT if user is admin
+        if account.get("is_admin"):
+            jwt_payload["is_admin"] = True
+        
+        # Generate JWT token
+        token = jwt.encode(jwt_payload, JWT_SECRET_KEY, algorithm="HS256")
         
         return jsonify({
             "token": token,
@@ -1255,6 +1297,797 @@ def start_task_update_with_do_search():
     else:
         response = ResponseError("Please Specify Type",400)
     return jsonify(response), response['status']
+
+# ==================== ADMIN USER MANAGEMENT ENDPOINTS ====================
+
+def admin_required(f):
+    """Middleware untuk memastikan hanya admin yang bisa akses"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get("Authorization")
+        if not token:
+            return jsonify({"error": "Missing token"}), 401
+        try:
+            decoded = get_jwt_data(token)
+            user_id = decoded['user_id']
+            
+            # Check if user is admin (bisa disesuaikan dengan logic admin Anda)
+            accounts_collection = mongo_db.get_accounts_collection()
+            account = accounts_collection.find_one({"_id": ObjectId(user_id)})
+            
+            if not account or not account.get('is_admin', False):
+                return jsonify({"error": "Admin access required"}), 403
+                
+            request.admin_user_id = user_id
+            return f(*args, **kwargs)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 401
+    return decorated_function
+
+# ==================== CRUD USER ENDPOINTS ====================
+
+@app.route('/admin/users', methods=['GET'])
+@admin_required
+def get_all_users():
+    """Get all users with pagination"""
+    try:
+        page = int(request.args.get('page', 1))
+        size = min(int(request.args.get('size', 10)), 100)
+        search = request.args.get('search', '').strip()
+        
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Build query
+        query = {}
+        if search:
+            search_conditions = [
+                {"access_id": {"$regex": search, "$options": "i"}}
+            ]
+            
+            # Add email and username search conditions
+            search_conditions.extend([
+                {"email": {"$regex": search, "$options": "i"}},
+                {"username": {"$regex": search, "$options": "i"}}
+            ])
+            
+            query = {"$or": search_conditions}
+        
+        # Get total count
+        total = accounts_collection.count_documents(query)
+        
+        # Get paginated results
+        skip = (page - 1) * size
+        users = list(accounts_collection.find(
+            query,
+            {
+                "_id": 1,
+                "access_id": 1,
+                "email": 1,
+                "username": 1,
+                "created_at": 1,
+                "last_login": 1,
+                "myPlan": 1,
+                "is_admin": 1,
+                "is_active": 1
+            }
+        ).skip(skip).limit(size))
+        
+        return jsonify({
+            "data": users,
+            "pagination": {
+                "page": page,
+                "size": size,
+                "total": total,
+                "pages": (total + size - 1) // size
+            },
+            "message": "Success get all users"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users/<user_id>', methods=['GET'])
+@admin_required
+def get_user_by_id(user_id):
+    """Get specific user by ID"""
+    try:
+        accounts_collection = mongo_db.get_accounts_collection()
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+            
+        return jsonify({
+            "data": user,
+            "message": "Success get user"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users', methods=['POST'])
+@admin_required
+def create_user():
+    """Create new user (admin only)"""
+    try:
+        data = request.json
+        email = data.get('email', '').strip()
+        username = data.get('username', '').strip()
+        is_admin = data.get('is_admin', False)
+        is_active = data.get('is_active', True)
+        
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+            
+        # Generate access ID
+        length = random.randint(18, 22)
+        characters = string.ascii_letters + string.digits
+        access_id = ''.join(random.choice(characters) for _ in range(length))
+        
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if email already exists
+        if accounts_collection.find_one({"email": email}):
+            return jsonify({"error": "Email already exists"}), 400
+        
+        # Check if username already exists (if provided)
+        if username:
+            if accounts_collection.find_one({"username": username}):
+                return jsonify({"error": "Username already exists"}), 400
+            
+        # Check if access_id already exists
+        while accounts_collection.find_one({"access_id": access_id}):
+            access_id = ''.join(random.choice(characters) for _ in range(length))
+        
+        secret = generate_secret()
+        
+        # Create user data
+        user_data = {
+            "access_id": access_id,
+            "email": email,
+            "created_at": datetime.datetime.now(),
+            "last_login": None,
+            "login_history": [],
+            "secret": secret,
+            "using_totp": True,
+            "is_admin": is_admin,
+            "is_active": is_active,
+            "created_by": request.admin_user_id
+        }
+        
+        # Add optional username if provided
+        if username:
+            user_data["username"] = username
+        
+        result = accounts_collection.insert_one(user_data)
+        user_id = str(result.inserted_id)
+        provision_url, secret = generate_url_otp(secret=secret, username=user_id)
+        
+        response_data = {
+            "user_id": user_id,
+            "access_id": access_id,
+            "email": email,
+            "provision_url": provision_url,
+            "is_admin": is_admin,
+            "is_active": is_active
+        }
+        
+        # Include username in response if provided
+        if username:
+            response_data["username"] = username
+        
+        return jsonify({
+            "data": response_data,
+            "message": "User created successfully"
+        }), 201
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users/<user_id>', methods=['PUT'])
+@admin_required
+def update_user(user_id):
+    """Update user information"""
+    try:
+        data = request.json
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if user exists
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Prepare update data
+        update_data = {}
+        allowed_fields = ['email', 'username', 'is_admin', 'is_active']
+        
+        for field in allowed_fields:
+            if field in data:
+                update_data[field] = data[field]
+        
+        if not update_data:
+            return jsonify({"error": "No valid fields to update"}), 400
+        
+        # Check email uniqueness if email is being updated
+        if 'email' in update_data and update_data['email']:
+            existing_user = accounts_collection.find_one({
+                "email": update_data['email'],
+                "_id": {"$ne": ObjectId(user_id)}
+            })
+            if existing_user:
+                return jsonify({"error": "Email already exists"}), 400
+        
+        # Check username uniqueness if username is being updated
+        if 'username' in update_data and update_data['username']:
+            existing_user = accounts_collection.find_one({
+                "username": update_data['username'],
+                "_id": {"$ne": ObjectId(user_id)}
+            })
+            if existing_user:
+                return jsonify({"error": "Username already exists"}), 400
+        
+        update_data['updated_at'] = datetime.datetime.now()
+        update_data['updated_by'] = request.admin_user_id
+        
+        # Update user
+        result = accounts_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({"error": "No changes made"}), 400
+            
+        return jsonify({
+            "message": "User updated successfully"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users/<user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    """Delete user (soft delete by setting is_active to False)"""
+    try:
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if user exists
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Soft delete - set is_active to False
+        result = accounts_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "is_active": False,
+                    "deleted_at": datetime.datetime.now(),
+                    "deleted_by": request.admin_user_id
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({"error": "Failed to delete user"}), 400
+            
+        return jsonify({
+            "message": "User deleted successfully"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==================== ASSIGN USER TO PACKAGE ENDPOINTS ====================
+
+@app.route('/admin/users/<user_id>/assign-package', methods=['POST'])
+@admin_required
+def assign_user_to_package(user_id):
+    """Assign existing user to specific package"""
+    try:
+        data = request.json
+        idPricing = data.get('idPricing')
+        plan = data.get('plan')
+        
+        if not idPricing or not plan:
+            return jsonify({"error": "idPricing and plan are required"}), 400
+            
+        allowed_plans = ['monthly', 'quarterly', 'yearly']
+        if plan not in allowed_plans:
+            return jsonify({"error": f"Invalid plan. Allowed values: {allowed_plans}"}), 400
+        
+        accounts_collection = mongo_db.get_accounts_collection()
+        pricing_collection = mongo_db.get_pricings_collection()
+        
+        # Check if user exists
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Check if pricing exists
+        pricing = pricing_collection.find_one({"_id": ObjectId(idPricing)})
+        if not pricing:
+            return jsonify({"error": "Pricing not found"}), 404
+        
+        # Check if plan exists in pricing
+        if plan not in pricing:
+            return jsonify({"error": f"Plan '{plan}' not found in pricing data"}), 400
+        
+        # Calculate expiration date
+        now = datetime.datetime.now()
+        if plan == 'monthly':
+            expired = now + relativedelta(months=1)
+        elif plan == 'quarterly':
+            expired = now + relativedelta(months=3)
+        elif plan == 'yearly':
+            expired = now + relativedelta(years=1)
+        
+        # Create plan data
+        plan_data = {
+            "plan": idPricing,
+            "expired": expired,
+            "domain": pricing['domain'],
+            "breach": pricing.get('breach', 'unlimited'),
+            "current_breach": "0",
+            "registered_domain": [],
+            "registered_breach_domain": [],
+            "assigned_at": now,
+            "assigned_by": request.admin_user_id
+        }
+        
+        # Update user with new plan
+        result = accounts_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": {"myPlan": plan_data}}
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({"error": "Failed to assign package"}), 400
+        
+        return jsonify({
+            "data": {
+                "user_id": user_id,
+                "plan": plan_data,
+                "pricing_info": {
+                    "id": idPricing,
+                    "domain": pricing['domain'],
+                    "description": pricing.get('description', ''),
+                    "features": pricing.get('features', [])
+                }
+            },
+            "message": "Package assigned successfully"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users/<user_id>/extend-package', methods=['POST'])
+@admin_required
+def extend_user_package(user_id):
+    """Extend user's current package"""
+    try:
+        data = request.json
+        extend_months = data.get('extend_months', 1)
+        
+        if not isinstance(extend_months, int) or extend_months <= 0:
+            return jsonify({"error": "extend_months must be a positive integer"}), 400
+        
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if user exists and has a plan
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        current_plan = user.get('myPlan')
+        if not current_plan:
+            return jsonify({"error": "User has no active plan"}), 400
+        
+        # Extend the expiration date
+        current_expired = current_plan.get('expired')
+        if isinstance(current_expired, str):
+            current_expired = datetime.datetime.fromisoformat(current_expired.replace('Z', '+00:00'))
+        
+        new_expired = current_expired + relativedelta(months=extend_months)
+        
+        # Update the plan
+        result = accounts_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "myPlan.expired": new_expired,
+                    "myPlan.extended_at": datetime.datetime.now(),
+                    "myPlan.extended_by": request.admin_user_id,
+                    "myPlan.extension_months": extend_months
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({"error": "Failed to extend package"}), 400
+        
+        return jsonify({
+            "data": {
+                "user_id": user_id,
+                "old_expired": str(current_expired),
+                "new_expired": str(new_expired),
+                "extension_months": extend_months
+            },
+            "message": "Package extended successfully"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users/<user_id>/remove-package', methods=['POST'])
+@admin_required
+def remove_user_package(user_id):
+    """Remove user's current package"""
+    try:
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if user exists
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Remove the plan
+        result = accounts_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$unset": {"myPlan": ""},
+                "$set": {
+                    "package_removed_at": datetime.datetime.now(),
+                    "package_removed_by": request.admin_user_id
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({"error": "Failed to remove package"}), 400
+        
+        return jsonify({
+            "message": "Package removed successfully"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==================== SETUP ENDPOINTS ====================
+
+@app.route('/setup/create-first-admin', methods=['POST'])
+def create_first_admin():
+    """Create first admin user (no authentication required)"""
+    try:
+        data = request.json
+        email = data.get('email', '').strip()
+        username = data.get('username', '').strip()
+        
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+        
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if any admin already exists
+        existing_admin = accounts_collection.find_one({"is_admin": True})
+        if existing_admin:
+            return jsonify({"error": "Admin user already exists"}), 400
+        
+        # Check if email already exists
+        if accounts_collection.find_one({"email": email}):
+            return jsonify({"error": "Email already exists"}), 400
+        
+        # Check if username already exists (if provided)
+        if username:
+            if accounts_collection.find_one({"username": username}):
+                return jsonify({"error": "Username already exists"}), 400
+        
+        # Generate access ID
+        length = random.randint(18, 22)
+        characters = string.ascii_letters + string.digits
+        access_id = ''.join(random.choice(characters) for _ in range(length))
+        
+        # Check if access_id already exists
+        while accounts_collection.find_one({"access_id": access_id}):
+            access_id = ''.join(random.choice(characters) for _ in range(length))
+        
+        secret = generate_secret()
+        
+        # Create admin user data
+        admin_data = {
+            "access_id": access_id,
+            "email": email,
+            "created_at": datetime.datetime.now(),
+            "last_login": None,
+            "login_history": [],
+            "secret": secret,
+            "using_totp": True,
+            "is_admin": True,
+            "is_active": True,
+            "created_by": "system"
+        }
+        
+        # Add optional username if provided
+        if username:
+            admin_data["username"] = username
+        
+        result = accounts_collection.insert_one(admin_data)
+        user_id = str(result.inserted_id)
+        provision_url, secret = generate_url_otp(secret=secret, username=user_id)
+        
+        response_data = {
+            "user_id": user_id,
+            "access_id": access_id,
+            "email": email,
+            "provision_url": provision_url,
+            "is_admin": True,
+            "is_active": True
+        }
+        
+        # Include username in response if provided
+        if username:
+            response_data["username"] = username
+        
+        return jsonify({
+            "data": response_data,
+            "message": "First admin user created successfully"
+        }), 201
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/setup/update-existing-users', methods=['POST'])
+def update_existing_users():
+    """Update existing users to add new fields (is_admin, is_active, email, username)"""
+    try:
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Get all users that don't have the new fields
+        users_to_update = accounts_collection.find({
+            "$or": [
+                {"is_admin": {"$exists": False}},
+                {"is_active": {"$exists": False}},
+                {"email": {"$exists": False}},
+                {"username": {"$exists": False}}
+            ]
+        })
+        
+        updated_count = 0
+        for user in users_to_update:
+            update_data = {}
+            
+            # Add missing fields with default values
+            if "is_admin" not in user:
+                update_data["is_admin"] = False
+            if "is_active" not in user:
+                update_data["is_active"] = True
+            if "email" not in user:
+                # Generate a placeholder email if none exists
+                update_data["email"] = f"user_{user['access_id']}@placeholder.com"
+            if "username" not in user:
+                # Username is optional, don't add placeholder
+                pass
+            
+            if update_data:
+                accounts_collection.update_one(
+                    {"_id": user["_id"]},
+                    {"$set": update_data}
+                )
+                updated_count += 1
+        
+        return jsonify({
+            "message": f"Updated {updated_count} users with new fields",
+            "updated_count": updated_count
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users/<user_id>/make-admin', methods=['POST'])
+@admin_required
+def make_user_admin(user_id):
+    """Make a user admin"""
+    try:
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if user exists
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Update user to admin
+        result = accounts_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "is_admin": True,
+                    "admin_granted_at": datetime.datetime.now(),
+                    "admin_granted_by": request.admin_user_id
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({"error": "Failed to make user admin"}), 400
+        
+        return jsonify({
+            "message": "User is now admin"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/users/<user_id>/remove-admin', methods=['POST'])
+@admin_required
+def remove_user_admin(user_id):
+    """Remove admin privileges from user"""
+    try:
+        accounts_collection = mongo_db.get_accounts_collection()
+        
+        # Check if user exists
+        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Prevent removing admin from self
+        if user_id == request.admin_user_id:
+            return jsonify({"error": "Cannot remove admin privileges from yourself"}), 400
+        
+        # Update user to remove admin
+        result = accounts_collection.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "is_admin": False,
+                    "admin_removed_at": datetime.datetime.now(),
+                    "admin_removed_by": request.admin_user_id
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return jsonify({"error": "Failed to remove admin privileges"}), 400
+        
+        return jsonify({
+            "message": "Admin privileges removed"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==================== MONGODB CONNECTION ENDPOINTS ====================
+
+@app.route('/admin/mongodb/status', methods=['GET'])
+@admin_required
+def mongodb_connection_status():
+    """Check MongoDB connection status"""
+    try:
+        # Test connection
+        mongo_db.client.admin.command('ping')
+        
+        # Get database info
+        db_stats = mongo_db.db.command("dbStats")
+        
+        # Get collections info
+        collections = mongo_db.db.list_collection_names()
+        collections_info = []
+        
+        for collection_name in collections:
+            collection = mongo_db.db[collection_name]
+            count = collection.count_documents({})
+            collections_info.append({
+                "name": collection_name,
+                "count": count
+            })
+        
+        return jsonify({
+            "status": "connected",
+            "database": MONGO_DB_NAME,
+            "database_stats": {
+                "collections": db_stats.get("collections", 0),
+                "data_size": db_stats.get("dataSize", 0),
+                "storage_size": db_stats.get("storageSize", 0),
+                "indexes": db_stats.get("indexes", 0)
+            },
+            "collections": collections_info,
+            "message": "MongoDB connection successful"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "status": "disconnected",
+            "error": str(e),
+            "message": "MongoDB connection failed"
+        }), 500
+
+@app.route('/admin/mongodb/collections/<collection_name>', methods=['GET'])
+@admin_required
+def get_collection_data(collection_name):
+    """Get data from specific MongoDB collection"""
+    try:
+        page = int(request.args.get('page', 1))
+        size = min(int(request.args.get('size', 10)), 100)
+        search = request.args.get('search', '').strip()
+        
+        collection = mongo_db.db[collection_name]
+        
+        # Build query
+        query = {}
+        if search:
+            # Try to search in common fields
+            query = {
+                "$or": [
+                    {"access_id": {"$regex": search, "$options": "i"}},
+                    {"email": {"$regex": search, "$options": "i"}},
+                    {"username": {"$regex": search, "$options": "i"}},
+                    {"_id": {"$regex": search, "$options": "i"}}
+                ]
+            }
+        
+        # Get total count
+        total = collection.count_documents(query)
+        
+        # Get paginated results
+        skip = (page - 1) * size
+        documents = list(collection.find(query).skip(skip).limit(size))
+        
+        return jsonify({
+            "collection": collection_name,
+            "data": documents,
+            "pagination": {
+                "page": page,
+                "size": size,
+                "total": total,
+                "pages": (total + size - 1) // size
+            },
+            "message": f"Success get data from {collection_name}"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/admin/mongodb/collections/<collection_name>/stats', methods=['GET'])
+@admin_required
+def get_collection_stats(collection_name):
+    """Get statistics for specific MongoDB collection"""
+    try:
+        collection = mongo_db.db[collection_name]
+        
+        # Get collection stats
+        stats = mongo_db.db.command("collStats", collection_name)
+        
+        # Get sample documents
+        sample_docs = list(collection.find().limit(3))
+        
+        # Get field analysis
+        pipeline = [
+            {"$project": {"arrayofkeyvalue": {"$objectToArray": "$$ROOT"}}},
+            {"$unwind": "$arrayofkeyvalue"},
+            {"$group": {"_id": "$arrayofkeyvalue.k", "count": {"$sum": 1}}},
+            {"$sort": {"count": -1}},
+            {"$limit": 10}
+        ]
+        
+        field_analysis = list(collection.aggregate(pipeline))
+        
+        return jsonify({
+            "collection": collection_name,
+            "stats": {
+                "count": stats.get("count", 0),
+                "size": stats.get("size", 0),
+                "avgObjSize": stats.get("avgObjSize", 0),
+                "storageSize": stats.get("storageSize", 0),
+                "totalIndexSize": stats.get("totalIndexSize", 0),
+                "indexes": stats.get("nindexes", 0)
+            },
+            "sample_documents": sample_docs,
+            "field_analysis": field_analysis,
+            "message": f"Success get stats for {collection_name}"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5001)
