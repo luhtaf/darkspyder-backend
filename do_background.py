@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, send_file
 from flask.json.provider import DefaultJSONProvider
 import subprocess, jwt, datetime, json, os, string, random, threading
+from datetime import datetime as dt
 from breach1 import search_breach1
 from breach2 import search_lcheck_stealer
 from functools import wraps
@@ -21,7 +22,7 @@ class CustomJSONProvider(DefaultJSONProvider):
     def default(self, obj):
         if isinstance(obj, ObjectId):
             return str(obj)
-        if isinstance(obj, datetime):
+        if isinstance(obj, dt):
             return obj.isoformat()
         return super().default(obj)
 
@@ -38,6 +39,25 @@ def get_jwt_data(token):
         return jsonify({"error": "Missing token"}), 401
     
     return jwt.decode(token.split("Bearer ")[1], JWT_SECRET_KEY, algorithms=["HS256"])
+
+def validate_object_id(id_string):
+    """Validate and convert string to ObjectId"""
+    try:
+        if not id_string:
+            return None, "ObjectId cannot be empty"
+        
+        if len(id_string) != 24:
+            return None, f"ObjectId must be exactly 24 characters, got {len(id_string)}"
+        
+        # Check if it's a valid hex string
+        try:
+            int(id_string, 16)
+        except ValueError:
+            return None, f"ObjectId must contain only hexadecimal characters (0-9, a-f), got: {id_string}"
+        
+        return ObjectId(id_string), None
+    except Exception as e:
+        return None, f"Invalid ObjectId: {str(e)}"
 
 def extract_domain_from_url(url_or_domain):
     """
@@ -376,7 +396,7 @@ def login_route():
 def mark_as_valid(id):
     data = request.json
     valid = data.get('valid')    
-    if not isinstance(valid, bool) and valid is not None:          
+    if valid is not None and not isinstance(valid, bool):          
         return jsonify({"msg": "Valid must be boolean or null"}), 400
     response = update_valid(id, valid)
     return jsonify(response), response['status']
@@ -1372,6 +1392,11 @@ def get_all_users():
             }
         ).skip(skip).limit(size))
         
+        # Convert ObjectId to string for JSON serialization
+        for user in users:
+            if '_id' in user:
+                user['_id'] = str(user['_id'])
+        
         return jsonify({
             "data": users,
             "pagination": {
@@ -1391,8 +1416,13 @@ def get_all_users():
 def get_user_by_id(user_id):
     """Get specific user by ID"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         accounts_collection = mongo_db.get_accounts_collection()
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         
         if not user:
             return jsonify({"error": "User not found"}), 404
@@ -1489,11 +1519,16 @@ def create_user():
 def update_user(user_id):
     """Update user information"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         data = request.json
         accounts_collection = mongo_db.get_accounts_collection()
         
         # Check if user exists
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -1512,7 +1547,7 @@ def update_user(user_id):
         if 'email' in update_data and update_data['email']:
             existing_user = accounts_collection.find_one({
                 "email": update_data['email'],
-                "_id": {"$ne": ObjectId(user_id)}
+                "_id": {"$ne": obj_id}
             })
             if existing_user:
                 return jsonify({"error": "Email already exists"}), 400
@@ -1521,7 +1556,7 @@ def update_user(user_id):
         if 'username' in update_data and update_data['username']:
             existing_user = accounts_collection.find_one({
                 "username": update_data['username'],
-                "_id": {"$ne": ObjectId(user_id)}
+                "_id": {"$ne": obj_id}
             })
             if existing_user:
                 return jsonify({"error": "Username already exists"}), 400
@@ -1531,7 +1566,7 @@ def update_user(user_id):
         
         # Update user
         result = accounts_collection.update_one(
-            {"_id": ObjectId(user_id)},
+            {"_id": obj_id},
             {"$set": update_data}
         )
         
@@ -1550,16 +1585,21 @@ def update_user(user_id):
 def delete_user(user_id):
     """Delete user (soft delete by setting is_active to False)"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         accounts_collection = mongo_db.get_accounts_collection()
         
         # Check if user exists
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         if not user:
             return jsonify({"error": "User not found"}), 404
         
         # Soft delete - set is_active to False
         result = accounts_collection.update_one(
-            {"_id": ObjectId(user_id)},
+            {"_id": obj_id},
             {
                 "$set": {
                     "is_active": False,
@@ -1586,6 +1626,11 @@ def delete_user(user_id):
 def assign_user_to_package(user_id):
     """Assign existing user to specific package"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         data = request.json
         idPricing = data.get('idPricing')
         plan = data.get('plan')
@@ -1601,12 +1646,17 @@ def assign_user_to_package(user_id):
         pricing_collection = mongo_db.get_pricings_collection()
         
         # Check if user exists
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         if not user:
             return jsonify({"error": "User not found"}), 404
         
+        # Validate pricing ObjectId
+        pricing_obj_id, error = validate_object_id(idPricing)
+        if error:
+            return jsonify({"error": f"Invalid pricing ID: {error}"}), 400
+        
         # Check if pricing exists
-        pricing = pricing_collection.find_one({"_id": ObjectId(idPricing)})
+        pricing = pricing_collection.find_one({"_id": pricing_obj_id})
         if not pricing:
             return jsonify({"error": "Pricing not found"}), 404
         
@@ -1638,7 +1688,7 @@ def assign_user_to_package(user_id):
         
         # Update user with new plan
         result = accounts_collection.update_one(
-            {"_id": ObjectId(user_id)},
+            {"_id": obj_id},
             {"$set": {"myPlan": plan_data}}
         )
         
@@ -1667,16 +1717,27 @@ def assign_user_to_package(user_id):
 def extend_user_package(user_id):
     """Extend user's current package"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         data = request.json
         extend_months = data.get('extend_months', 1)
         
-        if not isinstance(extend_months, int) or extend_months <= 0:
+        # Convert to int if it's a string number
+        try:
+            extend_months = int(extend_months)
+        except (ValueError, TypeError):
+            return jsonify({"error": "extend_months must be a valid integer"}), 400
+        
+        if extend_months <= 0:
             return jsonify({"error": "extend_months must be a positive integer"}), 400
         
         accounts_collection = mongo_db.get_accounts_collection()
         
         # Check if user exists and has a plan
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -1693,7 +1754,7 @@ def extend_user_package(user_id):
         
         # Update the plan
         result = accounts_collection.update_one(
-            {"_id": ObjectId(user_id)},
+            {"_id": obj_id},
             {
                 "$set": {
                     "myPlan.expired": new_expired,
@@ -1725,16 +1786,21 @@ def extend_user_package(user_id):
 def remove_user_package(user_id):
     """Remove user's current package"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         accounts_collection = mongo_db.get_accounts_collection()
         
         # Check if user exists
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         if not user:
             return jsonify({"error": "User not found"}), 404
         
         # Remove the plan
         result = accounts_collection.update_one(
-            {"_id": ObjectId(user_id)},
+            {"_id": obj_id},
             {
                 "$unset": {"myPlan": ""},
                 "$set": {
@@ -1889,16 +1955,21 @@ def update_existing_users():
 def make_user_admin(user_id):
     """Make a user admin"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         accounts_collection = mongo_db.get_accounts_collection()
         
         # Check if user exists
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         if not user:
             return jsonify({"error": "User not found"}), 404
         
         # Update user to admin
         result = accounts_collection.update_one(
-            {"_id": ObjectId(user_id)},
+            {"_id": obj_id},
             {
                 "$set": {
                     "is_admin": True,
@@ -1923,10 +1994,15 @@ def make_user_admin(user_id):
 def remove_user_admin(user_id):
     """Remove admin privileges from user"""
     try:
+        # Validate ObjectId
+        obj_id, error = validate_object_id(user_id)
+        if error:
+            return jsonify({"error": error}), 400
+        
         accounts_collection = mongo_db.get_accounts_collection()
         
         # Check if user exists
-        user = accounts_collection.find_one({"_id": ObjectId(user_id)})
+        user = accounts_collection.find_one({"_id": obj_id})
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -1936,7 +2012,7 @@ def remove_user_admin(user_id):
         
         # Update user to remove admin
         result = accounts_collection.update_one(
-            {"_id": ObjectId(user_id)},
+            {"_id": obj_id},
             {
                 "$set": {
                     "is_admin": False,
