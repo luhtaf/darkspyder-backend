@@ -1810,9 +1810,168 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Use Breach Quota",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/use-breach",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"use-breach"
+							]
+						},
+						"description": "Menggunakan kuota breach tanpa parameter apapun. Endpoint ini akan otomatis mengurangi kuota breach user dengan menambah current_breach +1."
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/use-breach",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"use-breach"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Breach quota used successfully\",\n    \"status\": \"success\",\n    \"current_breach\": 2,\n    \"breach_limit\": 10\n}"
+						},
+						{
+							"name": "Quota Exceeded",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/use-breach",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"use-breach"
+									]
+								}
+							},
+							"status": "Forbidden",
+							"code": 403,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"error\": \"You have exceeded the number of breach allowed in your plan\"\n}"
+						},
+						{
+							"name": "Unlimited Quota Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/use-breach",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"use-breach"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "JSON",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json",
+									"type": "text"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"You have unlimited breach quota\",\n    \"status\": \"success\",\n    \"current_breach\": 5,\n    \"breach_limit\": \"unlimited\"\n}"
+						}
+					]
 				}
 			],
-			"description": "Alurnya adalah\n\n1. user cek `Pricing List` untuk mendapatkan plan apa saja yang bisa diambil\n2. user cek `Asset List` untuk melihat koin dan blockchain apa yang tersedia pada nominal tersebut\n3. user membuat invoice melalui `Create Invoice`\n4. user membuat payment melalui `Create Payment` untuk membuat instruksi bayar\n5. user mengecek apakah pembayaran sudah terbayar melalui `Process Payment`hanya endpoint ini adalah endpoint dasar yang dapat melakukan pengecekan bayar dan update ke sistem apabila sudah bayar, apabila endpoint ini tidak di hit, sistem kita tidak bisa secara otomatis mengetahui apakah pembayaran berhasil, saran dapat di hit menggunakan cron\n    \n6. Apabila pembayaran diterima, user mendaftarkan domain yang akan di monitor melalui `Register Domain`.\n    \n\nETC\n\n`My Payment` untuk melihat semua daftar transaksi user saat ini\n\n`Get One Payment` untuk melihat by id sebuah transaksi\n\n`My Plan` untuk melihat plan yang sedang aktif dari user saat ini\n\n`Background Check` untuk melakukan pengecekan pada edpoint `Process Payment` Secara Berkala setiap 1 menit, hingga 10 menit sejak di HIT"
+			"description": "Alurnya adalah\n\n1. user cek `Pricing List` untuk mendapatkan plan apa saja yang bisa diambil\n2. user cek `Asset List` untuk melihat koin dan blockchain apa yang tersedia pada nominal tersebut\n3. user membuat invoice melalui `Create Invoice`\n4. user membuat payment melalui `Create Payment` untuk membuat instruksi bayar\n5. user mengecek apakah pembayaran sudah terbayar melalui `Process Payment`hanya endpoint ini adalah endpoint dasar yang dapat melakukan pengecekan bayar dan update ke sistem apabila sudah bayar, apabila endpoint ini tidak di hit, sistem kita tidak bisa secara otomatis mengetahui apakah pembayaran berhasil, saran dapat di hit menggunakan cron\n    \n6. Apabila pembayaran diterima, user mendaftarkan domain yang akan di monitor melalui `Register Domain`.\n    \n\nETC\n\n`My Payment` untuk melihat semua daftar transaksi user saat ini\n\n`Get One Payment` untuk melihat by id sebuah transaksi\n\n`My Plan` untuk melihat plan yang sedang aktif dari user saat ini\n\n`My Breach Info` untuk melihat informasi kuota breach user\n\n`Use Breach Quota` untuk menggunakan kuota breach tanpa parameter apapun\n\n`Background Check` untuk melakukan pengecekan pada edpoint `Process Payment` Secara Berkala setiap 1 menit, hingga 10 menit sejak di HIT"
 		}
 	],
 	"auth": {

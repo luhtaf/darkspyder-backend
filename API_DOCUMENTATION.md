@@ -233,6 +233,60 @@ Menghapus hak admin dari user.
 
 ---
 
+## 🔍 Breach Management Endpoints
+
+### 1. Use Breach Quota
+**POST** `/use-breach`
+
+Menggunakan kuota breach tanpa parameter apapun. Endpoint ini akan otomatis mengurangi kuota breach user dengan menambah `current_breach` +1.
+
+**Authentication:** Required (JWT token)
+
+**Request Body:** Tidak ada parameter yang diperlukan
+
+**Response Success (200):**
+
+Untuk kuota terbatas:
+```json
+{
+    "message": "Breach quota used successfully",
+    "status": "success",
+    "current_breach": 2,
+    "breach_limit": 10
+}
+```
+
+Untuk kuota unlimited:
+```json
+{
+    "message": "You have unlimited breach quota",
+    "status": "success",
+    "current_breach": 5,
+    "breach_limit": "unlimited"
+}
+```
+
+**Error Responses:**
+- `404` - User account not found
+- `403` - User does not have an active plan / Plan expired / Quota exceeded
+- `500` - Internal server error
+
+**Contoh Penggunaan:**
+```bash
+POST /use-breach
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
+
+**Fitur:**
+- Validasi apakah user memiliki plan aktif
+- Cek apakah plan belum expired
+- Validasi kuota breach yang tersisa
+- Otomatis increment `current_breach` counter
+- Support untuk plan unlimited breach
+
+---
+
 ## 📦 Package Management Endpoints (Admin Only)
 
 ### 1. Assign Package to User
@@ -570,4 +624,20 @@ GET /admin/mongodb/collections/account?page=1&size=10
 
 # Get collection stats
 GET /admin/mongodb/collections/account/stats
+```
+
+### 6. **Breach Management:**
+```bash
+# Use breach quota (tidak perlu parameter)
+POST /use-breach
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+
+# Response:
+{
+    "message": "Breach quota used successfully",
+    "status": "success",
+    "current_breach": 2,
+    "breach_limit": 10
+}
 ```

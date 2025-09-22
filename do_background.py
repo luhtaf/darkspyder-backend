@@ -1321,6 +1321,80 @@ def start_task_update_with_do_search():
         response = ResponseError("Please Specify Type",400)
     return jsonify(response), response['status']
 
+@app.route("/use-breach", methods=["POST"])
+@jwt_required
+def use_breach():
+    """
+    Endpoint to use breach quota without any parameters.
+    Handles:
+    - Checking if user has active plan
+    - Validating breach quota limits
+    - Incrementing current_breach counter
+    """
+    try:
+        # Get user information from JWT token
+        token = request.headers.get("Authorization")
+        decoded = get_jwt_data(token)
+        user_id = decoded['user_id']
+        
+        # Get user's plan information from MongoDB
+        accounts_collection = mongo_db.get_accounts_collection()
+        account = accounts_collection.find_one(
+            {"_id": ObjectId(user_id)}, 
+            {"_id": 1, "myPlan": 1}
+        )
+        
+        if not account:
+            return jsonify({"error": "User account not found"}), 404
+            
+        plan_info = account.get('myPlan', {})
+        if not plan_info:
+            return jsonify({"error": "User does not have an active plan"}), 403
+            
+        # Check if plan has expired
+        if plan_info.get('expired') < datetime.datetime.now() and plan_info.get('expired') != 'unlimited':
+            return jsonify({"error": "Your plan has expired"}), 403
+            
+        # Check breach quota
+        breach = plan_info.get('breach', 0)
+        
+        
+        # Handle unlimited breach quota
+        if breach == 'unlimited':
+            return jsonify({
+                "message": "You have unlimited breach quota",
+                "status": "success",
+                "current_breach": current_breach,
+                "breach_limit": "unlimited"
+            }), 200
+        
+        # Handle limited breach quota
+        breach = int(breach)
+        current_breach = int(plan_info.get('current_breach', 0))
+        
+        # Check if user has exceeded breach quota
+        if current_breach >= breach:
+            return jsonify({"error": "You have exceeded the number of breach allowed in your plan"}), 403
+            
+        # Increment current_breach counter
+        set_data = {
+            "$set": {
+                "myPlan.current_breach": str(current_breach + 1)
+            }
+        }
+        filter = {"_id": ObjectId(user_id)}
+        accounts_collection.update_one(filter, set_data)
+        
+        return jsonify({
+            "message": "Breach quota used successfully",
+            "status": "success",
+            "current_breach": current_breach + 1,
+            "breach_limit": breach
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ==================== ADMIN USER MANAGEMENT ENDPOINTS ====================
 
 def admin_required(f):
