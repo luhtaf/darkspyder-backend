@@ -1274,7 +1274,7 @@ def download_do_search():
 
 @app.route("/do-search/update/all", methods=["GET"])
 @jwt_required
-@domain_validation
+# @domain_validation
 def start_task_update_with_do_search_all():
     # Extract arguments from the query parameters
     # Handle both unlimited and limited domain plans
@@ -1299,7 +1299,7 @@ def start_task_update_with_do_search_all():
 
 @app.route("/do-search/update", methods=["GET"])
 @jwt_required
-@domain_validation
+# @domain_validation
 def start_task_update_with_do_search():
     # Extract arguments from the query parameters
     # Handle both unlimited and limited domain plans
