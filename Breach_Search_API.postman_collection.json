@@ -1,0 +1,542 @@
+{
+	"info": {
+		"_postman_id": "breach-search-api-collection-2024",
+		"name": "Breach Search API Collection",
+		"description": "Collection untuk testing Breach Search API endpoints dengan API Key authentication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has status healthy\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Endpoint untuk mengecek status kesehatan API"
+			},
+			"response": []
+		},
+		{
+			"name": "API Info",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response has service info\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.service).to.eql(\"Breach Search API\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api-info",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api-info"
+					]
+				},
+				"description": "Endpoint untuk mendapatkan informasi API dan dokumentasi"
+			},
+			"response": []
+		},
+		{
+			"name": "Breach Search - Basic Query",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is JSON\", function () {",
+							"    pm.response.to.be.json;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "{{api_key}}",
+						"type": "text",
+						"description": "API Key untuk autentikasi"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/breach-search?q=example@gmail.com",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "example@gmail.com",
+							"description": "Query pencarian (email, domain, username)"
+						}
+					]
+				},
+				"description": "Pencarian breach data dengan query basic"
+			},
+			"response": []
+		},
+		{
+			"name": "Breach Search - With Pagination",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is JSON\", function () {",
+							"    pm.response.to.be.json;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/breach-search?q=gmail.com&page=1&size=20",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "gmail.com",
+							"description": "Query pencarian"
+						},
+						{
+							"key": "page",
+							"value": "1",
+							"description": "Nomor halaman (mulai dari 1)"
+						},
+						{
+							"key": "size",
+							"value": "20",
+							"description": "Jumlah hasil per halaman"
+						}
+					]
+				},
+				"description": "Pencarian dengan pagination untuk membatasi hasil"
+			},
+			"response": []
+		},
+		{
+			"name": "Breach Search - With All Filters",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response is JSON\", function () {",
+							"    pm.response.to.be.json;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/breach-search?q=example&username=john&domain=gmail.com&password=123456&page=1&size=10",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "example",
+							"description": "Query pencarian utama"
+						},
+						{
+							"key": "username",
+							"value": "john",
+							"description": "Filter berdasarkan username"
+						},
+						{
+							"key": "domain",
+							"value": "gmail.com",
+							"description": "Filter berdasarkan domain"
+						},
+						{
+							"key": "password",
+							"value": "123456",
+							"description": "Filter berdasarkan password"
+						},
+						{
+							"key": "page",
+							"value": "1",
+							"description": "Nomor halaman"
+						},
+						{
+							"key": "size",
+							"value": "10",
+							"description": "Jumlah hasil per halaman"
+						}
+					]
+				},
+				"description": "Pencarian dengan semua filter yang tersedia"
+			},
+			"response": []
+		},
+		{
+			"name": "Breach Search - Large Dataset",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Response time is less than 5000ms\", function () {",
+							"    pm.expect(pm.response.responseTime).to.be.below(5000);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/breach-search?q=gmail&size=100&page=1",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "gmail",
+							"description": "Query dengan kemungkinan hasil banyak"
+						},
+						{
+							"key": "size",
+							"value": "100",
+							"description": "Request data dalam jumlah besar"
+						},
+						{
+							"key": "page",
+							"value": "1"
+						}
+					]
+				},
+				"description": "Test performa dengan dataset besar"
+			},
+			"response": []
+		},
+		{
+			"name": "Error - Missing API Key",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test(\"Error message correct\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.error).to.include(\"Invalid or missing API key\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/breach-search?q=example@gmail.com",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "example@gmail.com"
+						}
+					]
+				},
+				"description": "Test error ketika API key tidak disertakan"
+			},
+			"response": []
+		},
+		{
+			"name": "Error - Invalid API Key",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test(\"Error message correct\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.error).to.include(\"Invalid or missing API key\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "invalid-api-key-123",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/breach-search?q=example@gmail.com",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "example@gmail.com"
+						}
+					]
+				},
+				"description": "Test error ketika API key salah"
+			},
+			"response": []
+		},
+		{
+			"name": "Error - Missing Query Parameter",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Error message correct\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.error).to.include(\"Query parameter 'q' is required\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/breach-search",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					]
+				},
+				"description": "Test error ketika parameter query tidak disertakan"
+			},
+			"response": []
+		},
+		{
+			"name": "Error - Empty Query Parameter",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test(\"Error message correct\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.error).to.include(\"Query parameter 'q' is required\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-API-Key",
+						"value": "{{api_key}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/breach-search?q=",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"breach-search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "",
+							"description": "Query kosong"
+						}
+					]
+				},
+				"description": "Test error ketika parameter query kosong"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set timestamp untuk setiap request",
+					"pm.globals.set(\"timestamp\", new Date().toISOString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test untuk semua request",
+					"pm.test(\"Response time is reasonable\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(10000);",
+					"});",
+					"",
+					"pm.test(\"Response has proper headers\", function () {",
+					"    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5002",
+			"type": "string",
+			"description": "Base URL untuk Breach Search API"
+		},
+		{
+			"key": "api_key",
+			"value": "breach-search-api-key-2024",
+			"type": "string",
+			"description": "Static API Key untuk autentikasi"
+		}
+	]
+}

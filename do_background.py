@@ -285,6 +285,7 @@ def start_search():
         return jsonify(response), 400
         
     return jsonify(response), response.get("status", 200)
+
 @app.route("/search/download", methods=["GET"])
 @jwt_required
 def download_search():
@@ -385,7 +386,7 @@ def login_route():
     if username == username_app and password == password_app:
         token = jwt.encode({
             "user": username,
-            "exp": datetime.datetime.now() + datetime.timedelta(hours=1)
+            "exp": datetime.datetime.now() + datetime.timedelta(hours=7*24)
         }, JWT_SECRET_KEY, algorithm="HS256")
         return {"token": token}, 200
     else:
@@ -2241,6 +2242,40 @@ def get_collection_stats(collection_name):
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/demo", methods=["GET"])
+@jwt_required
+def start_search_demo():
+    q = request.args.get("q", "")
+    # type_param = request.args.get('type', '').strip().lower() 
+    type_param = "breach"  # Force type to breach only
+    page = int(request.args.get('page', 1))
+    size = request.args.get('size', 10)
+    if (size != "all"):
+        try:
+            size = int(size)
+        except ValueError:
+            return jsonify({"error": "Invalid size parameter"}), 400
+            
+    username = request.args.get('username')  
+    domain = request.args.get('domain')
+    password = request.args.get('password')
+    
+    valid = request.args.get('valid', '').strip().lower()
+    data = {
+        "username": username,
+        "domain": domain,
+        "password": password
+    }
+
+    response = search_elastic(q, type_param, page, size, data, valid)
+    
+    # Handle the size limit response
+    if response.get("status") == 400:
+        return jsonify(response), 400
+        
+    return jsonify(response), response.get("status", 200)
+
 
 if __name__ == "__main__":
     app.run(debug=False, host="0.0.0.0", port=5001)
