@@ -682,9 +682,9 @@ def new_login():
         if not account:
             return jsonify({"error": "Invalid access ID"}), 401
         
-        # totp_valid = verify_totp(account['secret'],token)
-        # if not totp_valid:
-        #     return jsonify({"error": "Invalid TOTP token"}), 401
+        totp_valid = verify_totp(account['secret'],token)
+        if not totp_valid:
+            return jsonify({"error": "Invalid TOTP token"}), 401
 
         # Get current timestamp
         current_time = datetime.datetime.now()
