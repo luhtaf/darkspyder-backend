@@ -73,4 +73,5 @@ def search_stealer2(q, page):
     status_code=200
     return ResponseSuccess(final_data, status_code)
 
-main()
+if __name__ == "__main__":
+    main()

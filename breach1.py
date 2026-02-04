@@ -50,4 +50,5 @@ def search_breach1(q):
     status_code=200
     return ResponseSuccess(final_data, status_code)
 
-main()
+if __name__ == "__main__":
+    main()

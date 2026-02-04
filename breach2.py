@@ -96,4 +96,5 @@ def search_lcheck_stealer(q, type, limit):
     status_code=200
     return ResponseSuccess(final_data, status_code)
     
-main()
+if __name__ == "__main__":
+    main()
