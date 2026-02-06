@@ -26,7 +26,10 @@ class CustomJSONProvider(DefaultJSONProvider):
             return obj.isoformat()
         return super().default(obj)
 
+from flask_cors import CORS
+
 app = Flask(__name__)
+CORS(app)
 app.json_provider_class = CustomJSONProvider
 app.json = app.json_provider_class(app)
 app.config['UPLOAD_FOLDER'] = './'

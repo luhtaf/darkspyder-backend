@@ -12,3 +12,4 @@ requests
 leakcheck
 bs4
 gunicorn
+flask-cors
